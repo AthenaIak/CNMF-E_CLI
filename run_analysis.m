@@ -33,10 +33,19 @@ neuron_raw = neuronForData(d1,d2);
 % data look like
 [Cn, pnr] = neuron.correlation_pnr(Y(:, round(linspace(1, numFrame, 1000))));
 % save to be viewed where GUI is available
-[path,name,ext] = fileparts(filename);
+[path,name,~] = fileparts(filename);
+output_dir = sprintf('%s%s%s',path,filesep,name);
+if exist(output_dir, 'dir')
+    temp = cd();
+    cd(output_dir);
+    delete *;
+    cd(temp);
+else
+    mkdir(output_dir);
+end
+clear output_dir;
 disp('Saving correlation image and peak-to-noise ratio image...');
 nam_mat = sprintf('%s%s%s%sf01-cn&pnr.mat',path,filesep,name,filesep);
-mkdir(path,name);
 save(nam_mat, 'Cn', 'pnr');
 disp(sprintf('Saved as %s', nam_mat));
 
@@ -100,7 +109,10 @@ fprintf('Time cost in estimating the background:        %.2f seconds\n', toc);
 
 % subtract the background from the raw data.
 Ysignal = Y - Ybg;
-neuron.playMovie(Ysignal); % play the video data after subtracting the background components.
+disp('Saving video data after subtracting the background...');
+nam_mat = sprintf('%s%s%s%sf04-Ysignal_background_subtracted.mat',path,filesep,name,filesep);
+save(nam_mat, 'Ysignal', 'neuron');
+disp(sprintf('Saved as %s', nam_mat));
 
 for i=1:10
 %% update spatial components (cell 2), we can iteratively run cell 2& 3 for few times and then run cell 1
@@ -123,7 +135,7 @@ neuron.updateTemporal_endoscope(Ysignal, smin);
 fprintf('Time cost in updating neuronal temporal components:     %.2f seconds\n', toc);
 end
 
-%% udpate background (cell 1, the following three blocks can be run iteratively)
+%% udpate background (cell 1 again, after cell 2&3 are run iteratively)
 % determine nonzero pixels for each neuron
 if ~isfield(neuron.P, 'sn') || isempty(neuron.P.sn)
     sn = neuron.estNoise(Y);
@@ -143,8 +155,10 @@ fprintf('Time cost in estimating the background:        %.2f seconds\n', toc);
 
 % subtract the background from the raw data.
 Ysignal = Y - Ybg;
-neuron.playMovie(Ysignal); % play the video data after subtracting the background components.
-
+disp('Saving video data after subtracting the background (end)...');
+nam_mat = sprintf('%s%s%s%sf05-Ysignal_end.mat',path,filesep,name,filesep);
+save(nam_mat, 'Ysignal', 'neuron');
+disp(sprintf('Saved as %s', nam_mat));
 
 %% pick neurons from the residual (cell 4). It's not always necessary
 Yres = Ysignal - neuron.A*neuron.C;
@@ -155,33 +169,21 @@ patch_par = [2, 2];
 % [center_new, Cn_res, pnr_res] = neuron.pickNeurons(Yres, patch_par, 'manual'); % method can be either 'auto' or 'manual'
 
 %% save results
-result_nm = [dir_nm, file_nm, '_results.mat'];
+result_nm = [path, 'results.mat'];
 neuron.save_results(result_nm); %save variable 'neuron' only.
 % neuron.save_results(result_nm, neuron.reshape(Ybg, 2)); % save background as well
 
+%% save neurons for display
+dir_neurons = sprintf('%s%s%s%sneurons%s', path,filesep,name,filesep,filesep);
+disp('Saving neuron and neurons dir...');
+nam_mat = sprintf('%s%s%s%sf06-neurons.mat',path,filesep,name,filesep);
+save(nam_mat, 'dir_neurons', 'neuron');
+disp(sprintf('Saved as %s', nam_mat));
 
 
-%% display neurons
-dir_neurons = sprintf('%s%s_neurons%s', dir_nm, file_nm, filesep);
-if exist('dir_neurons', 'dir')
-    temp = cd();
-    cd(dir_neurons);
-    delete *;
-    cd(temp);
-else
-    mkdir(dir_neurons);
-end
-neuron.viewNeurons([], neuron.C_raw, dir_neurons);
-%% display contours of the neurons
-figure;
-% neuron.viewContours(Cn, 0.9, 0);  % correlation image computed with
-% spatially filtered data
-% [Cn, pnr] = neuron.correlation_pnr(Ysignal); % very slow 
-Cnn = correlation_image(Ysignal(:, 1:5:end), 4, d1, d2);
-neuron.viewContours(Cnn, 0.9, 0); % correlation image computed with background-subtracted data
-colormap winter;
-axis equal; axis off;
-title('contours of estimated neurons');
-% plot contours with IDs
-figure;
-plot_contours(neuron.A, Cn, 0.9, 0, [], neuron.Coor);
+%% save neural contours for display
+disp('Saving contours of neurons for display...');
+nam_mat = sprintf('%s%s%s%sf07-contours.mat',path,filesep,name,filesep);
+save(nam_mat, 'neuron', 'Ysignal', 'd1', 'd2', 'Cn');
+disp(sprintf('Saved as %s', nam_mat));
+
