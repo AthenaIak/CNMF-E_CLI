@@ -17,6 +17,7 @@ addpath(sprintf('%s%sGUI%smodules', CNMF_dir, filesep, filesep));
 clear CNMF_dir;
 
 % filename = 'D:\�����������\CNMF_E\demos\data_endoscope.tif'
+% filename = '~/Data/iHPC5 raw/output/mcorr_moco_recording_20160118_140521.tif';
 data = loadRawData(filename);
 Ysiz = data.Ysiz;
 d1 = Ysiz(1);   %height
@@ -65,7 +66,7 @@ nam_mat = sprintf('%s%s%s%sf02-cn_after_init.mat',path,filesep,name,filesep);
 save(nam_mat, 'Cn', 'center');
 disp(sprintf('Saved as %s', nam_mat));
 
-[~, srt] = sort(max(neuron.C, [], 2)./get_noise_fft(neuron.C), 'descend');
+[~, srt] = sort(max(neuron.C, [], 2)./get_noise_fft(neuron.C), 'descend'); % can crush if no neurons detected
 neuron.orderROIs(srt);
 neuron_init = neuron.copy();
 
@@ -89,7 +90,7 @@ save(nam_mat, 'Cn', 'neuron');
 disp(sprintf('Saved as %s', nam_mat));
 
 
-%% udpate background (cell 1, the following three blocks can be run iteratively)
+%% update background (cell 1, the following three blocks can be run iteratively)
 % determine nonzero pixels for each neuron
 if ~isfield(neuron.P, 'sn') || isempty(neuron.P.sn)
     sn = neuron.estNoise(Y);
@@ -111,7 +112,7 @@ fprintf('Time cost in estimating the background:        %.2f seconds\n', toc);
 Ysignal = Y - Ybg;
 disp('Saving video data after subtracting the background...');
 nam_mat = sprintf('%s%s%s%sf04-Ysignal_background_subtracted.mat',path,filesep,name,filesep);
-save(nam_mat, 'Ysignal', 'neuron');
+save(nam_mat, 'Ysignal', 'neuron', '-v7.3');
 disp(sprintf('Saved as %s', nam_mat));
 
 for i=1:10
@@ -135,7 +136,7 @@ neuron.updateTemporal_endoscope(Ysignal, smin);
 fprintf('Time cost in updating neuronal temporal components:     %.2f seconds\n', toc);
 end
 
-%% udpate background (cell 1 again, after cell 2&3 are run iteratively)
+%% update background (cell 1 again, after cell 2&3 are run iteratively)
 % determine nonzero pixels for each neuron
 if ~isfield(neuron.P, 'sn') || isempty(neuron.P.sn)
     sn = neuron.estNoise(Y);
@@ -153,11 +154,11 @@ active_px = []; %(sum(IND, 2)>0);  %If some missing neurons are not covered by a
 Ybg = neuron.localBG(Ybg, ssub, rr, active_px, sn, 5); % estiamte local background.
 fprintf('Time cost in estimating the background:        %.2f seconds\n', toc);
 
-% subtract the background from the raw data.
+% subtract the background from the rawls data.
 Ysignal = Y - Ybg;
 disp('Saving video data after subtracting the background (end)...');
 nam_mat = sprintf('%s%s%s%sf05-Ysignal_end.mat',path,filesep,name,filesep);
-save(nam_mat, 'Ysignal', 'neuron');
+save(nam_mat, 'Ysignal', 'neuron', '-v7.3');
 disp(sprintf('Saved as %s', nam_mat));
 
 %% pick neurons from the residual (cell 4). It's not always necessary
@@ -170,20 +171,20 @@ patch_par = [2, 2];
 
 %% save results
 result_nm = [path, 'results.mat'];
-neuron.save_results(result_nm); %save variable 'neuron' only.
+neuron.save_results(result_nm, '-v7.3'); %save variable 'neuron' only.
 % neuron.save_results(result_nm, neuron.reshape(Ybg, 2)); % save background as well
 
 %% save neurons for display
 dir_neurons = sprintf('%s%s%s%sneurons%s', path,filesep,name,filesep,filesep);
 disp('Saving neuron and neurons dir...');
 nam_mat = sprintf('%s%s%s%sf06-neurons.mat',path,filesep,name,filesep);
-save(nam_mat, 'dir_neurons', 'neuron');
+save(nam_mat, 'dir_neurons', 'neuron', '-v7.3');
 disp(sprintf('Saved as %s', nam_mat));
 
 
 %% save neural contours for display
 disp('Saving contours of neurons for display...');
 nam_mat = sprintf('%s%s%s%sf07-contours.mat',path,filesep,name,filesep);
-save(nam_mat, 'neuron', 'Ysignal', 'd1', 'd2', 'Cn');
+save(nam_mat, 'neuron', 'Ysignal', 'd1', 'd2', 'Cn', '-v7.3');
 disp(sprintf('Saved as %s', nam_mat));
 

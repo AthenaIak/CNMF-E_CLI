@@ -42,7 +42,7 @@ Ysiz = size(Y)';
 if max(data.Ysiz - Ysiz) ~= 0
 	disp('Data cleaned. Saving...');
     nam_mat = sprintf('%s%s%s_clean.mat',path,filesep,name);
-    save(nam_mat, 'Y', 'Ysiz');
+    save(nam_mat, 'Y', 'Ysiz', '-v7.3');
 	disp('Finished cleaning data');
 end
 
