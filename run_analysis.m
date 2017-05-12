@@ -16,7 +16,7 @@ addpath(sprintf('%s%sGUI%sgui_callbacks', CNMF_dir, filesep, filesep));
 addpath(sprintf('%s%sGUI%smodules', CNMF_dir, filesep, filesep));
 clear CNMF_dir;
 
-% filename = 'D:\Διπλωματική\CNMF_E\demos\data_endoscope.tif'
+% filename = 'D:\οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½\CNMF_E\demos\data_endoscope.tif'
 data = loadRawData(filename);
 Ysiz = data.Ysiz;
 d1 = Ysiz(1);   %height
@@ -46,7 +46,7 @@ end
 clear output_dir;
 disp('Saving correlation image and peak-to-noise ratio image...');
 nam_mat = sprintf('%s%s%s%sf01-cn&pnr.mat',path,filesep,name,filesep);
-save(nam_mat, 'Cn', 'pnr');
+save(nam_mat, 'Cn', 'pnr', '-v7.3'); % specify version 7.3 to allow partial loading
 disp(sprintf('Saved as %s', nam_mat));
 
 %% initialization of A, C

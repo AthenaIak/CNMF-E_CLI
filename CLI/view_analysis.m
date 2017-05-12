@@ -1,6 +1,6 @@
 %% view all steps of the analysis
 % first select the folder that contains all relevant data (define path)
-path = 'D:\Διπλωματική\CNMF_E\demos\data_endoscope\';
+path = 'D:\οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½\CNMF_E\demos\data_endoscope\';
 
 %% plot correlation image and peak-to-noise-ratio of the raw data
 % can give you some ideas of how your data look like
