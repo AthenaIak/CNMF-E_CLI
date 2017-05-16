@@ -60,7 +60,7 @@ for mr = 1:nr_patch
         HY = imfilter(Ypatch, psf, 'replicate');
         
         % view effect of gaussian filter
-%         figure(1);
+%        figure(1);
 %         for i=1:1000
 %             subplot('121');
 %             imagesc(Ypatch(:,:,i));

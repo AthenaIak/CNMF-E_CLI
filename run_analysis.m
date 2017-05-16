@@ -18,6 +18,7 @@ clear CNMF_dir;
 
 % filename = 'D:\ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½\CNMF_E\demos\data_endoscope.tif'
 % filename = '~/Data/iHPC5 raw/output/mcorr_moco_recording_20160118_140521.tif';
+% filename = 'D:\ÄéðëùìáôéêÞ\data\mcorr_128_recording_20160118_140521.tif'
 data = loadRawData(filename);
 Ysiz = data.Ysiz;
 d1 = Ysiz(1);   %height
@@ -32,7 +33,10 @@ neuron_raw = neuronForData(d1,d2);
 % compute correlation image and peak-to-noise ratio image.
 % this step is not necessary, but it can give you some ideas of how your
 % data look like
-[Cn, pnr] = neuron.correlation_pnr(Y(:, round(linspace(1, numFrame, 1000))));
+neuron.options.gSiz = 25; % Average size of neuron (default = 15)
+%neuron.options.nb = 1; % Number of background elements (default = 1)
+%neuron.options.min_corr = 0.3; % Minimum correlation for separating neurons (default = 0.3)
+[Cn, pnr] = neuron.correlation_pnr(Y(:, round(linspace(1, numFrame, 1000)))); % calls correlation_image_endoscope
 % save to be viewed where GUI is available
 [path,name,~] = fileparts(filename);
 output_dir = sprintf('%s%s%s',path,filesep,name);
@@ -55,7 +59,7 @@ tic;
 debug_on = false; %true; 
 save_avi = false; 
 neuron.options.min_corr = 0.85;  % min correlation
-neuron.options.min_pnr = 10;  % min peak-to-noise ratio
+neuron.options.min_pnr = 6;  % min peak-to-noise ratio
 patch_par = [2,2]; %1;  % divide the optical field into m X n patches and do initialization patch by patch
 K = 300; % maximum number of neurons to search within each patch. you can use [] to search the number automatically
 neuron.options.bd = 1; % boundaries to be removed due to motion correction
@@ -66,9 +70,13 @@ nam_mat = sprintf('%s%s%s%sf02-cn_after_init.mat',path,filesep,name,filesep);
 save(nam_mat, 'Cn', 'center');
 disp(sprintf('Saved as %s', nam_mat));
 
-[~, srt] = sort(max(neuron.C, [], 2)./get_noise_fft(neuron.C), 'descend'); % can crush if no neurons detected
-neuron.orderROIs(srt);
-neuron_init = neuron.copy();
+if size(neuron.A, 2) > 0
+    [~, srt] = sort(max(neuron.C, [], 2)./get_noise_fft(neuron.C), 'descend'); % can crush if no neurons detected
+    neuron.orderROIs(srt);
+    neuron_init = neuron.copy();
+else
+    disp(sprintf('\nATTENTION: No neurons detected!\n'));
+end
 
 %% merge neurons, order neurons and delete some low quality neurons (cell 0, before running iterative udpates)
 % only parts implemented
