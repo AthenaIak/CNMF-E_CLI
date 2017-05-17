@@ -98,18 +98,18 @@ PNR = reshape(HY_max./Ysig, d1, d2);
 PNR0 = PNR;
 PNR(PNR<min_pnr) = 0;
 
-% estimate noise level and thrshold diff(HY)
+% estimate noise level and threshold diff(HY)
 % dHY = diff(HY(:, 1:nf:end), 1, 2);  %
 % Ysig = std(dHY(:, 1:5:end), 0, 2);
 % dHY(bsxfun(@lt, dHY, Ysig*sig)) =0;    % all negative and noisy spikes are removed
 HY_thr = HY;
 HY_thr(bsxfun(@lt, HY_thr, Ysig*sig)) = 0;
 
-% compute loal correlation
+% compute local correlation
 Cn = correlation_image(HY_thr, [1,2], d1,d2);
 Cn0 = Cn;   % backup
 Cn(isnan(Cn)) = 0;
-Cn = Cn + rand(size(Cn))*(1e-6); % add some noise (?)
+Cn = Cn + rand(size(Cn))*(1e-6); % add a very small value so that there exist no (absolute) zeros
 
 % screen seeding pixels as center of the neuron
 v_search = Cn.*PNR; % seed pixels should have high PNR and high Cn with neighboring pixels
@@ -226,7 +226,7 @@ while searching_flag
             continue;
         end
         if max(diff(y0))< 3*y0_std % signal is weak
-            continue;
+            %continue;
         end
         
         % select its neighbours for estimation of ai and ci, the box size is
@@ -235,7 +235,7 @@ while searching_flag
         csub = max(1, -gSiz+c):min(d2, gSiz+c);
         [cind, rind] = meshgrid(csub, rsub);
         [nr, nc] = size(cind);
-        ind_nhood = sub2ind([d1, d2], rind(:), cind(:)); %* indexes around the seed pixel
+        ind_nhood = sub2ind([d1, d2], rind(:), cind(:)); %* indexes around the seed pixel (neighbourhood)
         HY_box = HY(ind_nhood, :);      % extract temporal component from HY_box
         Y_box = Y(ind_nhood, :);    % extract spatial component from Y_box
         ind_ctr = sub2ind([nr, nc], r-rsub(1)+1, c-csub(1)+1);   % subscripts of the center

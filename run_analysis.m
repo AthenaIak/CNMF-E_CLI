@@ -17,8 +17,10 @@ addpath(sprintf('%s%sGUI%smodules', CNMF_dir, filesep, filesep));
 clear CNMF_dir;
 
 % filename = 'D:\ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½\CNMF_E\demos\data_endoscope.tif'
-% filename = '~/Data/iHPC5 raw/output/mcorr_moco_recording_20160118_140521.tif';
-% filename = 'D:\ÄéðëùìáôéêÞ\data\mcorr_128_recording_20160118_140521.tif'
+% filename = '~/Data/iHPC5 raw/output/mcorr_128-2_recording_20160118_140521.tif'
+% filename = '/home/athina/Data/demo_endoscope/data_endoscope.tif'
+% filename = '~/Data/iHPC5 raw/output/mcorr_128_recording_20160118_140521.tif';
+% filename = 'D:\ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½\data\mcorr_128_recording_20160118_140521.tif'
 data = loadRawData(filename);
 Ysiz = data.Ysiz;
 d1 = Ysiz(1);   %height
@@ -33,7 +35,7 @@ neuron_raw = neuronForData(d1,d2);
 % compute correlation image and peak-to-noise ratio image.
 % this step is not necessary, but it can give you some ideas of how your
 % data look like
-neuron.options.gSiz = 25; % Average size of neuron (default = 15)
+neuron.options.gSiz = 7; % Average size of neuron (default = 15)
 %neuron.options.nb = 1; % Number of background elements (default = 1)
 %neuron.options.min_corr = 0.3; % Minimum correlation for separating neurons (default = 0.3)
 [Cn, pnr] = neuron.correlation_pnr(Y(:, round(linspace(1, numFrame, 1000)))); % calls correlation_image_endoscope
@@ -58,8 +60,11 @@ disp(sprintf('Saved as %s', nam_mat));
 tic;
 debug_on = false; %true; 
 save_avi = false; 
-neuron.options.min_corr = 0.85;  % min correlation
-neuron.options.min_pnr = 6;  % min peak-to-noise ratio
+%neuron.options.nk = 5; % number of knots for creating spline basis
+neuron.options.min_corr = 0.8;  % min correlation (default = 0.3)
+neuron.options.min_pnr = 4;  % min peak-to-noise ratio % (default = 10)
+neuron.options.merge_thr = .9; % merge threshold (the higher, the more seed pixels are detected and not merged into 1nu) (default = 0.7)
+neuron.options.gSig = 4; % width of the gaussian used for spatial filtering (default = 4)
 patch_par = [2,2]; %1;  % divide the optical field into m X n patches and do initialization patch by patch
 K = 300; % maximum number of neurons to search within each patch. you can use [] to search the number automatically
 neuron.options.bd = 1; % boundaries to be removed due to motion correction
@@ -70,7 +75,9 @@ nam_mat = sprintf('%s%s%s%sf02-cn_after_init.mat',path,filesep,name,filesep);
 save(nam_mat, 'Cn', 'center');
 disp(sprintf('Saved as %s', nam_mat));
 
-if size(neuron.A, 2) > 0
+neurDetected = size(neuron.A, 2);
+if neurDetected > 0
+    disp(sprintf('\n%d neurons detected.\n', neurDetected));
     [~, srt] = sort(max(neuron.C, [], 2)./get_noise_fft(neuron.C), 'descend'); % can crush if no neurons detected
     neuron.orderROIs(srt);
     neuron_init = neuron.copy();
