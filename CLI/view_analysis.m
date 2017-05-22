@@ -1,6 +1,6 @@
 %% view all steps of the analysis
 % first select the folder that contains all relevant data (define path)
-path = 'D:\�����������\CNMF_E\demos\data_endoscope\';
+path = '~/tp/data/iHPC5 raw/recording_20160125_114832/output/mcorr_mosaic_128-recording_20160125_114832/';
 
 %% plot correlation image and peak-to-noise-ratio of the raw data
 % can give you some ideas of how your data look like
