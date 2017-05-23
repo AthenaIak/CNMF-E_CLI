@@ -15,15 +15,34 @@ end
 if strcmp(ext,'.tif')
     nam_mat = tif2mat(filename);
 elseif strcmp(ext,'.mat')
+    % if a mat is given, assume it is ready to be used
     nam_mat = filename;
+    data = matfile(nam_mat);
+    exit(0);
 else
     disp('Unsupported format: only .tif and .mat files allowed');
     exit(1);
 end
 
+% temporally downsample the data
 data = matfile(nam_mat);
+try
+    Yfs = data.Yfs;
+catch
+    warning('Frequency not specified. Assumed frequency is 20Hz.');
+    Yfs = 20;
+end
 
-Y = data.Y;
+fsChanged = false;
+dfc = floor(Yfs/5);
+if Yfs ~= 1
+    disp(sprintf('Temporally downsampling data from %0.1fHz by a factor of %d.\n',Yfs,dfc));
+    old_num_frames = size(data.Y,3);
+    Y = data.Y(:,:,1:dfc:end);
+    new_num_frames = size(Y,3);
+    Yfs = Yfs * new_num_frames / old_num_frames;
+    fsChanged = true;
+end
 
 % remove unwanted rows
 % 1. sum over columns if sum=0, then the row is blank and it should not be
@@ -38,15 +57,18 @@ Y = data.Y;
 Y = Y(find(min(sum(Y,2),[],3)~=0),find(min(sum(Y,1),[],3)~=0),:);
 Ysiz = size(Y)';
 
-% save data only if they were not already clean
+% save the data if any changes were made
 if max(data.Ysiz - Ysiz) ~= 0
-	disp('Data cleaned. Saving...');
-    nam_mat = sprintf('%s%s%s_clean.mat',path,filesep,name);
-    save(nam_mat, 'Y', 'Ysiz', '-v7.3');
-	disp('Finished cleaning data');
+    disp('Data cleaned.');
+end
+if or(fsChanged, max(data.Ysiz - Ysiz) ~= 0)
+    disp('Saving data...');
+    nam_mat = sprintf('%s%s%s_proc.mat',path,filesep,name);
+    save(nam_mat, 'Y', 'Ysiz', 'Yfs', '-v7.3');
+    disp('Data saved.');
 end
 
-% load the clean data
+% load the preprocessed data
 data = matfile(nam_mat);
 
 end

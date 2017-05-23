@@ -30,7 +30,6 @@ Ysiz = data.Ysiz;
 d1 = Ysiz(1);   %height
 d2 = Ysiz(2);   %width
 numFrame = Ysiz(3);    %total number of frames
-fprintf('\nThe data has been mapped to RAM. It has %d X %d pixels X %d frames. \nLoading all data requires %.2f GB RAM\n\n', d1, d2, numFrame, prod(Ysiz)*8/(2^30));
 
 % create helper structure neuron_raw
 neuron_raw = neuronForData(d1,d2);
@@ -69,7 +68,7 @@ neuron.options.min_corr = 0.3;  % min correlation (default = 0.3)
 neuron.options.min_pnr = 10;  % min peak-to-noise ratio % (default = 10)
 neuron.options.merge_thr = .7; % merge threshold (the higher, the more seed pixels are detected and not merged into 1nu) (default = 0.7)
 neuron.options.gSig = 5; % width of the gaussian used for spatial filtering (default = 4)
-patch_par = [4 2]; %[2,2]; %1;  % divide the optical field into m X n patches and do initialization patch by patch
+patch_par = 1; %[2,2]; %1;  % divide the optical field into m X n patches and do initialization patch by patch
 K = 300; % maximum number of neurons to search within each patch. you can use [] to search the number automatically
 neuron.options.bd = 1; % boundaries to be removed due to motion correction
 [center, Cn, pnr] = neuron.initComponents_endoscope(Y, K, patch_par, debug_on, save_avi); 
