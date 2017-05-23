@@ -79,4 +79,55 @@ figure;
 plot_contours(neuron.A, Cn, 0.9, 0, [], neuron.Coor);
 clear neuron; clear Ysignal; clear d1; clear d2; clear Cn; clear Cnn;
 
+%% view pair-wise highly spatially correlated neurons
+load(sprintf('%sf06-neurons.mat',path));
+
+corr_thres = .5;
+neurons_detected = size(neuron.A,2);
+d1 = neuron.options.d1;
+d2 = neuron.options.d2;
+
+T = size(neuron.C, 2);
+t = 1:T;
+if ~isnan(neuron.Fs)
+    t = t/neuron.Fs;
+    str_xlabel = 'Time (Sec.)';
+else
+    str_xlabel = 'Frame';
+end
+
+% create dir to save images
+folder_nm = sprintf('%s%s',path,'neuron_comparison');
+cur_cd = cd();
+
+if ~exist(folder_nm, 'dir'); mkdir(folder_nm);
+else
+    fprintf('The folder has been created and old results will be overwritten. \n');
+end
+cd(folder_nm);
+
+for i=1:neurons_detected-1
+    for j=i+1:neurons_detected
+        pw_corr = corr(neuron.A(:,i),neuron.A(:,j));
+        if pw_corr > corr_thres
+            figure(1); 
+            subplot('321');
+            imagesc(reshape(neuron.A(:,i),[d1 d2]));
+            subplot('322');
+            imagesc(reshape(neuron.A(:,j),[d1 d2]));
+            subplot('312');
+            plot(t, neuron.C_raw(i, :)*max(neuron.A(:, i)), 'b', 'linewidth', 2); hold on;
+            plot(t, neuron.C(i, :)*max(neuron.A(:, i)), 'r'); hold off;
+            subplot('313');
+            plot(t, neuron.C_raw(j, :)*max(neuron.A(:, j)), 'b', 'linewidth', 2); hold on;
+            plot(t, neuron.C(j, :)*max(neuron.A(:, j)), 'r'); hold off;
+            ax=axes('Units','Normal','Position',[.075 .075 .85 .85],'Visible','off');
+            set(get(ax,'Title'),'Visible','on')
+            title(sprintf('Neuron %d vs. %d: Spatial corr=%0.2f',i,j,pw_corr));
+            saveas(gcf, sprintf('neurons_%03d_%03d_corr_%0.1f.png', i,j,pw_corr));
+            %pause();
+        end
+    end
+end
+
 
