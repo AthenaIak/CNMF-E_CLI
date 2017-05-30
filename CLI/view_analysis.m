@@ -130,4 +130,8 @@ for i=1:neurons_detected-1
     end
 end
 
+cd(cur_cd);
+clear ax; clear corr_thres; clear cur_cd; clear d1; clear d2; clear dir_neurons;
+clear folder_nm; clear i; clear j; clear neuron; clear neurons_detected; 
+clear pw_corr; clear str_xlabel; clear T; clear t;
 

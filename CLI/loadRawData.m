@@ -15,10 +15,7 @@ end
 if strcmp(ext,'.tif')
     nam_mat = tif2mat(filename);
 elseif strcmp(ext,'.mat')
-    % if a mat is given, assume it is ready to be used
     nam_mat = filename;
-    data = matfile(nam_mat);
-    exit(0);
 else
     disp('Unsupported format: only .tif and .mat files allowed');
     exit(1);
@@ -35,13 +32,15 @@ end
 
 fsChanged = false;
 dfc = floor(Yfs/5);
-if Yfs ~= 1
+if dfc ~= 1
     disp(sprintf('Temporally downsampling data from %0.1fHz by a factor of %d.\n',Yfs,dfc));
     old_num_frames = size(data.Y,3);
     Y = data.Y(:,:,1:dfc:end);
     new_num_frames = size(Y,3);
     Yfs = Yfs * new_num_frames / old_num_frames;
     fsChanged = true;
+else
+    Y = data.Y;
 end
 
 % remove unwanted rows
@@ -56,20 +55,21 @@ end
 % keep only rows and columns that never had sum=0.
 Y = Y(find(min(sum(Y,2),[],3)~=0),find(min(sum(Y,1),[],3)~=0),:);
 Ysiz = size(Y)';
-
-% save the data if any changes were made
 if max(data.Ysiz - Ysiz) ~= 0
     disp('Data cleaned.');
 end
+
+% save the data if any changes were made
 if or(fsChanged, max(data.Ysiz - Ysiz) ~= 0)
     disp('Saving data...');
     nam_mat = sprintf('%s%s%s_proc.mat',path,filesep,name);
     save(nam_mat, 'Y', 'Ysiz', 'Yfs', '-v7.3');
     disp('Data saved.');
+    
+    disp('Loading the changed data.');
+    data = matfile(nam_mat);
+    disp('Data loaded');
 end
-
-% load the preprocessed data
-data = matfile(nam_mat);
 
 end
 
