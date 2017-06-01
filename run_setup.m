@@ -8,6 +8,7 @@ addpath(sprintf('%s%sGUI%sgui_callbacks', CNMF_dir, filesep, filesep));
 addpath(sprintf('%s%sGUI%smodules', CNMF_dir, filesep, filesep));
 addpath(sprintf('%s%soasis', CNMF_dir, filesep));
 addpath(sprintf('%s%scnmfe_scripts', CNMF_dir, filesep));
+addpath(sprintf('%s%sCLI', CNMF_dir, filesep));
 
 %% setup cvx
 if isempty(which('cvx_begin.m'))

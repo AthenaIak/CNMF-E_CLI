@@ -1,7 +1,7 @@
 %% view all steps of the analysis
 % first select the folder that contains all relevant data (define path)
 path = '~/tp/data/iHPC5 raw/recording_20160125_114832/output/mcorr_mosaic_128-recording_20160125_114832/';
-
+run_setup;
 %% plot correlation image and peak-to-noise-ratio of the raw data
 % can give you some ideas of how your data look like
 load(sprintf('%sf01-cn&pnr.mat',path));
@@ -102,7 +102,7 @@ cur_cd = cd();
 
 if ~exist(folder_nm, 'dir'); mkdir(folder_nm);
 else
-    fprintf('The folder has been created and old results will be overwritten. \n');
+    disp('The folder has been created and old results will be overwritten. \n');
 end
 cd(folder_nm);
 
