@@ -115,23 +115,27 @@ for i=1:neurons_detected-1
             imagesc(reshape(neuron.A(:,i),[d1 d2]));
             subplot('322');
             imagesc(reshape(neuron.A(:,j),[d1 d2]));
-            subplot('312');
+            ax1 = subplot('312');
             plot(t, neuron.C_raw(i, :)*max(neuron.A(:, i)), 'b', 'linewidth', 2); hold on;
             plot(t, neuron.C(i, :)*max(neuron.A(:, i)), 'r'); hold off;
-            subplot('313');
+            ax2 = subplot('313');
             plot(t, neuron.C_raw(j, :)*max(neuron.A(:, j)), 'b', 'linewidth', 2); hold on;
             plot(t, neuron.C(j, :)*max(neuron.A(:, j)), 'r'); hold off;
             ax=axes('Units','Normal','Position',[.075 .075 .85 .85],'Visible','off');
             set(get(ax,'Title'),'Visible','on')
+            allYLim = get([ax1,ax2], 'YLim');
+            allYLim = cat(2, allYLim{:});
+            set(ax1, 'YLim', [min(allYLim), max(allYLim)]);
+            set(ax2, 'YLim', [min(allYLim), max(allYLim)]);
             title(sprintf('Neuron %d vs. %d: Spatial corr=%0.2f',i,j,pw_corr));
             saveas(gcf, sprintf('neurons_%03d_%03d_corr_%0.1f.png', i,j,pw_corr));
-            %pause();
         end
     end
 end
 
 cd(cur_cd);
-clear ax; clear corr_thres; clear cur_cd; clear d1; clear d2; clear dir_neurons;
-clear folder_nm; clear i; clear j; clear neuron; clear neurons_detected; 
-clear pw_corr; clear str_xlabel; clear T; clear t;
+clear d1 d2 corr_thres neuron neurons_detected pw_corr;
+clear cur_cd dir_neurons folder_nm;
+clear ax ax1 ax2 str_xlabel allYLim;
+clear i j t T;
 

@@ -32,7 +32,7 @@ Y = data.Y(crop(1)+1:end-crop(3),crop(4)+1:end-crop(2),:);
 Yfs = data.Yfs;
 clear data;
 Ysiz = size(Y)';
-filename = '~/tp/athina/data/4294/output/reduced_recording_20160531_144143.mat';
+filename = '~/tp/athina/data/4294/output/gSig56.mat';
 save(filename, 'Y', 'Ysiz','Yfs','-v7.3');
 clear Y Ysiz Yfs crop;
 %
@@ -81,7 +81,7 @@ save_avi = false;
 neuron.options.min_corr = 0.3;  % min correlation (default = 0.3)
 neuron.options.min_pnr = 10;  % min peak-to-noise ratio % (default = 10)
 neuron.options.merge_thr = .7; % merge threshold (the higher, the more seed pixels are detected and not merged into 1nu) (default = 0.7)
-neuron.options.gSig = 7; % width of the gaussian used for spatial filtering (default = 4)
+neuron.options.gSig = 56; % width of the gaussian used for spatial filtering (default = 4)
 %patch_par = [2 2]; %1;  % divide the optical field into m X n patches and do initialization patch by patch
 K = 300; % maximum number of neurons to search within each patch. you can use [] to search the number automatically
 neuron.options.bd = 1; % boundaries to be removed due to motion correction

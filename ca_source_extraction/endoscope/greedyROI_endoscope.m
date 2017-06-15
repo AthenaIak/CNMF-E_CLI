@@ -226,7 +226,7 @@ while searching_flag
             continue;
         end
         if max(diff(y0))< 3*y0_std % signal is weak
-            %continue;
+            continue;
         end
         
         % select its neighbours for estimation of ai and ci, the box size is

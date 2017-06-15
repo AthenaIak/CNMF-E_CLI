@@ -115,43 +115,81 @@ Y = Y(:,:,1:downsamplingFactor:end);
 Ysiz = size(Y)';
 Yfs = 1/desiredStep;
 
-nam_mat = fullfile(outDir, sprintf('ready_%s.mat',movieFiles{1}));
+nam_mat = sprintf('%s%sready_%s.mat',path,filesep,movieFiles{1});
 save(nam_mat, 'Y', 'Ysiz', 'Yfs', '-v7.3');
 
 %% Normalize the movie by the mean frame (df/f).
-dffMovie = mosaic.normalizeMovie(mcMovie, 'method', '(f-f0)/f0');
-clear mcMovie;
-%dffMovie.view()
+dffMovies = mosaic.List('mosaic.Movie');
+for m = 1:numMovies
+    dffMovie = mosaic.normalizeMovie(mcMovies.get(m), 'method', '(f-f0)/f0');
+    dffMovies.add(dffMovie);
+end
+clear mcMovies; clear dffMovie;
 
-dffMovieFile = fullfile(outDir, 'processedMovie.mat');
-mosaic.saveOneObject(dffMovie, dffMovieFile);
+% %% Save the processed movie for later.
+% dffMovieFile = fullfile(outDir, 'processedMovie.mat');
+% mosaic.saveOneObject(dffMovie, dffMovieFile);
 
 %% Identify cells using PCA-ICA.
+ICSs = mosaic.List('mosaic.Group');
+for m=1:numMovies
+    ics = mosaic.pcaIca(dffMovies.get(m), 'unmix', 'traces', ...
+        'numPCs', 200, 'numICs', 150, 'icaMaxIterations', 800);
+    %icTraces = ics.getList('types', {'mosaic.Trace'});
+    %icMixingImages = ics.getMixingImages();
+    %icUnmixingImages = ics.getUnmixingImages();
+    
+    ICSs.add(ics);
+end
 
-ics = mosaic.pcaIca(dffMovie, 'unmix', 'traces', ...
-    'numPCs', 350, 'numICs', 270);
-% save object to view later
-icsFile = fullfile(outDir, 'processedMovie-ICs.mat');
-mosaic.saveOneObject(ics, icsFile);
+%% Save the ICs.
+for m=1:numMovies
+    icsFile = fullfile(outDir, 'ICSs_All.mat');
+    mosaic.saveList(ICSs, icsFile);
+end
+%% 
+icTracesAll = mosaic.List('mosaic.List');
+icMixingImagesAll = mosaic.List('mosaic.List');
+icUnmixingImagesAll = mosaic.List('mosaic.List');
+for m=1:numMovies
+    
+    icTraces = ICSs.get(m).getList('types', {'mosaic.Trace'});
+    icMixingImages = ICSs.get(m).getMixingImages();
+    icUnmixingImages = ICSs.get(m).getUnmixingImages();
+    
+    icTracesAll.add(icTraces);
+    icMixingImagesAll.add(icMixingImages);
+    icUnmixingImagesAll.add(icUnmixingImages);
+end
+clear icTraces; clear icMixingImages; clear icUnmixingImages;
 
-% view traces etc
-icTraces = ics.getList('types', {'mosaic.Trace'});
-% icTraces.get(1).view()
-icMixingImages = ics.getMixingImages();
-icUnmixingImages = ics.getUnmixingImages();
-% icMixingImages.get(1).view()
+%% view the last three traces of the IC found
+for m=1:numMovies
+    numICs = icTracesAll.get(m).getSize();
+    for n=numICs-2:numICs
+        icTracesAll.get(m).get(n).view();
+    end
+end
 
 %% Detect events in IC traces.
-eventTraces = mosaic.List('mosaic.Trace');
-for i = 1:icTraces.getSize()
-    eventTrace = mosaic.detectEvents(icTraces.get(i));
-    eventTraces.add(eventTrace);
+eventTracesAll = mosaic.List('mosaic.List');
+for m=1:numMovies
+    icTraces = icTracesAll.get(m);
+    eventTraces = mosaic.List('mosaic.Trace');
+    for i = 1:icTraces.getSize()
+        eventTrace = mosaic.detectEvents(icTraces.get(i));
+        eventTraces.add(eventTrace);
+    end
+    
+    eventTracesAll.add(eventTraces);
 end
-% eventTraces.get(1).view()
+clear eventTraces; clear icTraces;
 
 %% Save the events.
-eventsFile = fullfile(outDir, 'processedMovie-ICs-events.mat');
-mosaic.saveList(eventTraces, eventsFile);
+for m=1:numMovies
+    eventsFile = fullfile(outDir, sprintf('ICs-events_%s.mat',movies.get(m).getName()));
+    mosaic.saveList(eventTracesAll.get(m), eventsFile);
+end
 
 %% Terminate the Mosaic script session.
 mosaic.terminate();
