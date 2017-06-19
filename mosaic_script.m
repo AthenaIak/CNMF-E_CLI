@@ -22,8 +22,8 @@ roi = [390 370 1310 930];
 
 prefsFile = '/home/athina/Data/inscopix/examplePrefs.mat';
 workDir = '/home/athina/Data/inscopix/temp';
-memoryQuota = 16;
-driveQuota = 40;
+memoryQuota = 30;
+driveQuota = 60;
 
 % numMovies = length(movieFiles);
 % let's start with one
@@ -45,7 +45,7 @@ for m = 1:numMovies
     movie = mosaic.loadMovieTiff(fullfile(inDir, movieFiles{m}));
     movies.add(movie);
 end
-clear movie
+clear movie;
 
 %% crop movies
 
@@ -118,13 +118,16 @@ Yfs = 1/desiredStep;
 nam_mat = fullfile(outDir, sprintf('ready_%s.mat',movieFiles{1}));
 save(nam_mat, 'Y', 'Ysiz', 'Yfs', '-v7.3');
 
+clear Y Ysiz Yfs;
+clear currentStep desiredStep downsamplingFactor;
+
 %% Normalize the movie by the mean frame (df/f).
 dffMovie = mosaic.normalizeMovie(mcMovie, 'method', '(f-f0)/f0');
 clear mcMovie;
 %dffMovie.view()
 
 dffMovieFile = fullfile(outDir, 'processedMovie.mat');
-mosaic.saveOneObject(dffMovie, dffMovieFile);
+%mosaic.saveOneObject(dffMovie, dffMovieFile);
 
 %% Identify cells using PCA-ICA.
 
@@ -150,8 +153,10 @@ end
 % eventTraces.get(1).view()
 
 %% Save the events.
-eventsFile = fullfile(outDir, 'processedMovie-ICs-events.mat');
 mosaic.saveList(eventTraces, eventsFile);
 
+%% Load a previous list of traces
+eventsFile = fullfile(outDir, 'processedMovie-ICs-events.mat');
+eventTraces = mosaic.loadObjects(eventsFile).getList();
 %% Terminate the Mosaic script session.
 mosaic.terminate();
