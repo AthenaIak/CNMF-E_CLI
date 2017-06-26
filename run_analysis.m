@@ -81,7 +81,7 @@ save_avi = false;
 neuron.options.min_corr = 0.3;  % min correlation (default = 0.3)
 neuron.options.min_pnr = 10;  % min peak-to-noise ratio % (default = 10)
 neuron.options.merge_thr = .7; % merge threshold (the higher, the more seed pixels are detected and not merged into 1nu) (default = 0.7)
-neuron.options.gSig = 56; % width of the gaussian used for spatial filtering (default = 4)
+neuron.options.gSig = 14; % width of the gaussian used for spatial filtering (default = 4)
 %patch_par = [2 2]; %1;  % divide the optical field into m X n patches and do initialization patch by patch
 K = 300; % maximum number of neurons to search within each patch. you can use [] to search the number automatically
 neuron.options.bd = 1; % boundaries to be removed due to motion correction

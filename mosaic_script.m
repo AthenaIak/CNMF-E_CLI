@@ -1,8 +1,8 @@
 clc; clear; close all;
 
 srcDir = '~/tp/athina/Mosaic-MATLAB/src';
-inDir = '~/tp/athina/data/4294/output';
-outDir = '~/tp/athina/data/4294/output/mosaic_20160531_144143';
+inDir = '~/tp/athina/data/4294/';
+outDir = '~/tp/athina/data/4294/output/20170623_of_20160531_143408';
 
 % movieFiles = {...
 %     %'recording_20160118_140521.xml', ...
@@ -10,19 +10,31 @@ outDir = '~/tp/athina/data/4294/output/mosaic_20160531_144143';
 % };
 
 movieFiles = {...
-    'mcorr_recording_20160531_144143.tif',
-    'mcorr_recording_20160531_144143-1.tif'
+    'recording_20160531_141257.tif', ...
+    %'recording_20160531_141257-001.tif', ...
+    %'recording_20160531_141257-002.tif', ...
+    %failed to correct motion:
+    %'recording_20160531_143408.tif',
+    %'recording_20160531_143408-001.tif',
+    %'recording_20160531_143408-002.tif',
+    %'recording_20160531_143408-003.tif',
+    %'recording_20160531_143408-004.tif'
 };
 
 % crop parameters
-crop = [0 0 0 0];
+crop = [100 210 1196 796];
 
 % RoI used for motion correction
-roi = [390 370 1310 930];
+roi = [253 644 576 830];
+
+%parameters that lead to extensive motion detected but seemingly good
+%results
+%crop = [100 210 1124 722];
+%roi=[302 226 522 410];
 
 prefsFile = '/home/athina/Data/inscopix/examplePrefs.mat';
 workDir = '/home/athina/Data/inscopix/temp';
-memoryQuota = 30;
+memoryQuota = 28;
 driveQuota = 60;
 
 % numMovies = length(movieFiles);
@@ -66,9 +78,8 @@ for m = 1:numMovies
        'fixDroppedFrames', false, ...
        'spatialDownsampleFactor', 1); % do not downsample
     ppMovies.add(ppMovie);
-    ppMovies.add(croppedMovies.get(m));
-    movName = fullfile(outDir, sprintf('preproc_%s.tif',croppedMovies.get(m).getName()));
-    mosaic.saveMovieTiff(ppMovie, movName, 'compression', 'None');
+    %movName = fullfile(outDir, sprintf('preproc_%s.tif',croppedMovies.get(m).getName()));
+    %mosaic.saveMovieTiff(ppMovie, movName, 'compression', 'None');
 end
 clear ppMovie movName croppedMovies;
 
@@ -79,12 +90,13 @@ clear ppMovies;
 
 %% Correct motion in each movie.
 
-mcMovies = mosaic.List('mosaic.Movie');
+%mcMovies = mosaic.List('mosaic.Movie');
 referenceFrame = mosaic.extractFrame(concatMovie, 'frame', 1);
 mcRoi = mosaic.RectangleRoi(mosaic.Point(roi(1), roi(2)), mosaic.Point(roi(3), roi(4)));
 %mcRoi.view(concatMovie);
 
 [mcMovie, translations] = mosaic.motionCorrectMovie(concatMovie, ... 
+    'referenceImage', referenceFrame, ...
     'motionType', 'Translation', ... 
     'roi', mcRoi, ... 
     'speedWeight', 0.1, ... 
