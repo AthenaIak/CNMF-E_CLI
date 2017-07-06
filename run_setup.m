@@ -11,6 +11,7 @@ addpath(sprintf('%s%scnmfe_scripts', CNMF_dir, filesep));
 addpath(sprintf('%s%sCLI', CNMF_dir, filesep));
 
 %% setup cvx
+if(false)
 if isempty(which('cvx_begin.m'))
     if ~exist('cvx', 'dir')
         %install cvx
@@ -28,6 +29,7 @@ if isempty(which('cvx_begin.m'))
         unzip(cvx_url, CNMF_dir);
     end
     run(sprintf('%s%scvx%scvx_setup', CNMF_dir, filesep, filesep));
+end
 end
 %% save path
 %savepath();

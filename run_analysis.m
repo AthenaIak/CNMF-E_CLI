@@ -1,4 +1,4 @@
-function [ ans ] = run_analysis( filename, crop, patch_par )
+function [ ans ] = run_analysis( set_parameters )
 %RUN_ANALYSIS runs CNMF-E analysis on the data
 %   filename: the path+name of the file containing the data to be analyzed.
 %   crop :  crops the border of the data. Array with 4 values (top, right,
@@ -7,53 +7,65 @@ function [ ans ] = run_analysis( filename, crop, patch_par )
 %   the image to 2x2 images and then performs calculations. Default=1. If
 %   you can avoid splitting the image (enough RAM), avoid it.
 
-if ~exist('crop', 'var'), crop = [0, 0 0 0]; end
-if ~exist('patch_par', 'var'), patch_par = 1; end
+% set_parameters='~/tp/athina/CNMF-E_CLI/parameters_an001_cnmf';
+run (set_parameters);
 
 % add paths
 run_setup;
 clear CNMF_dir;
 
-% filename = 'D:\�����������\CNMF_E\demos\data_endoscope.tif'
-% filename = '~/tp/athina/data/4294/output/ready_recording_20160531_144143.mat';
-% filename = '~/tp/athina/data/4294/output/small_recording_20160531_144143.mat'
-% filename = '~/tp/data/iHPC5 raw/recording_20160125_114832/output/mcorr_mosaic-recording_20160125_114832.tif';
-% filename = '~/tp/data/iHPC5 raw/recording_20160125_114832/output/mcorr_mosaic_128-recording_20160125_114832.tif';
-% filename = '~/tp/data/iHPC5 raw/recording_20160125_114832/output/mcorr_moco-recording_20160125_114832.tif';
-% filename = '~/tp/data/iHPC5 raw/recording_20160125_114832/output/mcorr_moco_128-recording_20160125_114832.tif';
-% filename = '~/Data/iHPC5 raw/output/mcorr_128-2_recording_20160118_140521.tif'
-% filename = '/home/athina/Data/demo_endoscope/data_endoscope.tif'
-% filename = '~/Data/iHPC5 raw/output/mcorr_128_recording_20160118_140521.tif';
-% filename = 'D:\�����������\data\mcorr_128_recording_20160118_140521.tif'
+% load the data
 data = loadRawData(filename);
 
-%% cut the borders of the image to reduce size (should not normally do that)
-Y = data.Y(crop(1)+1:end-crop(3),crop(4)+1:end-crop(2),:);
-Yfs = data.Yfs;
-clear data;
-Ysiz = size(Y)';
-filename = '~/tp/athina/data/4294/output/gSig56.mat';
-save(filename, 'Y', 'Ysiz','Yfs','-v7.3');
-clear Y Ysiz Yfs crop;
-%
-data = loadRawData(filename);
 Ysiz = data.Ysiz;
 d1 = Ysiz(1);   %height
 d2 = Ysiz(2);   %width
 numFrame = Ysiz(3);    %total number of frames
 %Yfs = data.Yfs;
 
-% create container structure neuron
-neuron_raw = neuronForData(d1,d2);
-[Y, neuron, ~] = downsample(neuron_raw, data);
-clear data neuron_raw;
+%% create Source2D class object for storing results and parameters
+neuron_raw = Sources2D('d1',d1,'d2',d2);   % dimensions of datasets
+neuron_raw.Fs = fs;         % frame rate
+neuron_raw.updateParams('ssub', ssub,...  % spatial downsampling factor
+    'tsub', tsub, ...  %temporal downsampling factor
+    'gSig', gSig,... %width of the gaussian kernel, which can approximates the average neuron shape
+    'gSiz', gSiz, ...% maximum diameter of neurons in the image plane. larger values are preferred. 
+    'dist', dist, ... % maximum size of the neuron: dist*gSiz
+    'search_method', search_method, ... % searching method
+    'merge_thr', merge_thr, ... % threshold for merging neurons
+    'bas_nonneg', bas_nonneg);   % 1: positive baseline of each calcium traces; 0: any baseline
+
+neuron_raw.kernel = kernel;
+
+clear fs gSig gSiz dist search_method merge_thr bas_nonneg;
+clear ssub tsub tau_decay tau_rise nframe_decay bound_pars kernel;
+
+%% downsample data for fast and better initialization
+sframe=1;           % user input: first frame to read (optional, default:1)
+num2read= numFrame; % user input: how many frames to read   (optional, default: until the end)
+
+tic;
+if and(neuron_raw.options.ssub==1, neuron_raw.options.tsub==1)
+    neuron = neuron_raw;
+    Y = double(data.Y(:, :, sframe+(1:num2read)-1));
+    [d1s,d2s, T] = size(Y);
+    fprintf('\nThe data has been loaded into RAM. It has %d X %d pixels X %d frames. \nLoading all data requires %.2f GB RAM\n\n', d1s, d2s, T, d1s*d2s*T*8/(2^30));
+else
+    [Y, neuron] = neuron_raw.load_data(mat_filename, sframe, num2read);
+    [d1s,d2s, T] = size(Y);
+    fprintf('\nThe data has been downsampled and loaded into RAM. It has %d X %d pixels X %d frames. \nLoading all data requires %.2f GB RAM\n\n', d1s, d2s, T, d1s*d2s*T*8/(2^30));
+end
+Y = neuron.reshape(Y, 1);
+%neuron_raw.P.p = 2;      %order of AR model
+
+fprintf('Time cost in downsapling data:     %.2f seconds\n', toc);
+clear sframe numFrame num2read d1s d2s T data neuron_raw;
 
 % compute correlation image and peak-to-noise ratio image.
 % this step is not necessary, but it can give you some ideas of how your
 % data look like
-neuron.options.gSiz = 49; % Average size of neuron (default = 15)
-%neuron.options.nb = 1; % Number of background elements (default = 1)
-%neuron.options.min_corr = 0.3; % Minimum correlation for separating neurons (default = 0.3)
+
+neuron.options.nb = nb; % Number of background elements (default = 1)
 [Cn, pnr] = neuron.correlation_pnr(Y(:, round(linspace(1, numFrame, 1000)))); % calls correlation_image_endoscope
 % save to be viewed where GUI is available
 [path,name,~] = fileparts(filename);
@@ -66,29 +78,25 @@ if exist(output_dir, 'dir')
 else
     mkdir(output_dir);
 end
-clear output_dir;
+clear nb output_dir;
 disp('Saving correlation image and peak-to-noise ratio image...');
-nam_mat = sprintf('%s%s%s%sf01-cn&pnr.mat',path,filesep,name,filesep);
+nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f01-cn&pnr.mat');
 save(nam_mat, 'Cn', 'pnr', '-v7.3'); % specify version 7.3 to allow partial loading
 clear Cn pnr;
 disp(sprintf('Saved as %s', nam_mat));
 
 %% initialization of A, C
 tic;
-debug_on = false; %true; 
-save_avi = false; 
-%neuron.options.nk = 5; % number of knots for creating spline basis
-neuron.options.min_corr = 0.3;  % min correlation (default = 0.3)
-neuron.options.min_pnr = 10;  % min peak-to-noise ratio % (default = 10)
-neuron.options.merge_thr = .7; % merge threshold (the higher, the more seed pixels are detected and not merged into 1nu) (default = 0.7)
-neuron.options.gSig = 14; % width of the gaussian used for spatial filtering (default = 4)
-%patch_par = [2 2]; %1;  % divide the optical field into m X n patches and do initialization patch by patch
-K = 300; % maximum number of neurons to search within each patch. you can use [] to search the number automatically
-neuron.options.bd = 1; % boundaries to be removed due to motion correction
+
+neuron.options.nk = nk; % number of knots for creating spline basis
+neuron.options.min_corr = min_corr;  % min correlation (default = 0.3)
+neuron.options.min_pnr = min_pnr;  % min peak-to-noise ratio % (default = 10)
+neuron.options.bd = bd; % boundaries to be removed due to motion correction
+clear nk min_corr min_pnr bd;
 [center, Cn, ~] = neuron.initComponents_endoscope(Y, K, patch_par, debug_on, save_avi); 
 
 disp('Saving correlation image of initialized neuron...');
-nam_mat = sprintf('%s%s%s%sf02-cn_after_init.mat',path,filesep,name,filesep);
+nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f02-cn_after_init.mat');
 save(nam_mat, 'Cn', 'center');
 clear center;
 disp(sprintf('Saved as %s', nam_mat));
@@ -110,12 +118,10 @@ neuron.orderROIs(srt);
 % only parts implemented
 
 %neuron_bk = neuron.copy();
-merge_thr = [0.1, 0.7, 0];     % thresholds for merging neurons corresponding to
-%{sptial overlaps, temporal correlation of C, temporal correlation of S}
-%[merged_ROI, newIDs] = neuron.quickMerge(merge_thr);  % merge neurons based on the correlation computed with {'A', 'S', 'C'}
-neuron.quickMerge(merge_thr); % merge neurons based on the correlation computed with {'A', 'S', 'C'}
+%[merged_ROI, newIDs] = neuron.quickMerge(merge_thr_after);  % merge neurons based on the correlation computed with {'A', 'S', 'C'}
+neuron.quickMerge(merge_thr_after); % merge neurons based on the correlation computed with {'A', 'S', 'C'}
 % A: spatial shapes; S: spike counts; C: calcium traces 
-clear merge_thr;
+clear merge_thr_after;
 
 % sort neurons
 %[Cpnr, srt] = sort(max(neuron.C, [], 2).*max(neuron.A, [], 1)', 'descend');
@@ -125,7 +131,7 @@ clear srt;
 %[Ain, Cin] = neuron.snapshot();   % keep the initialization results
 
 disp('Saving contours of neurons...');
-nam_mat = sprintf('%s%s%s%sf03-contours_after_init.mat',path,filesep,name,filesep);
+nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f03-contours_after_init.mat');
 save(nam_mat, 'Cn', 'neuron','-v7.3');
 disp(sprintf('Saved as %s', nam_mat));
 
@@ -151,11 +157,10 @@ fprintf('Time cost in estimating the background:        %.2f seconds\n', toc);
 Ysignal = Y - Ybg;
 clear Ybg ssub  rr active_px;
 disp('Saving video data after subtracting the background...');
-nam_mat = sprintf('%s%s%s%sf04-Ysignal_background_subtracted.mat',path,filesep,name,filesep);
+nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f04-Ysignal_background_subtracted.mat');
 save(nam_mat, 'Ysignal', 'neuron', '-v7.3');
 disp(sprintf('Saved as %s', nam_mat));
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%% HERE
 for i=1:10
 %% update spatial components (cell 2), we can iteratively run cell 2& 3 for few times and then run cell 1
 % use HALS to update the spatial components
@@ -200,7 +205,7 @@ fprintf('Time cost in estimating the background:        %.2f seconds\n', toc);
 Ysignal = Y - Ybg;
 clear Ybg ssub rr active_px sn;
 disp('Saving video data after subtracting the background (end)...');
-nam_mat = sprintf('%s%s%s%sf05-Ysignal_end.mat',path,filesep,name,filesep);
+nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f05-Ysignal_end.mat');
 save(nam_mat, 'Ysignal', 'neuron', '-v7.3');
 disp(sprintf('Saved as %s', nam_mat));
 
@@ -228,14 +233,14 @@ clear result_nm;
 %% save neurons for display
 dir_neurons = sprintf('%s%s%s%sneurons%s', path,filesep,name,filesep,filesep);
 disp('Saving neuron and neurons dir...');
-nam_mat = sprintf('%s%s%s%sf06-neurons.mat',path,filesep,name,filesep);
+nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f06-neurons.mat');
 save(nam_mat, 'dir_neurons', 'neuron', '-v7.3');
 disp(sprintf('Saved as %s', nam_mat));
 clear dir_neurons;
 
 %% save neural contours for display
 disp('Saving contours of neurons for display...');
-nam_mat = sprintf('%s%s%s%sf07-contours.mat',path,filesep,name,filesep);
+nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f07-contours.mat');
 save(nam_mat, 'neuron', 'Ysignal', 'd1', 'd2', 'Cn', '-v7.3');
 disp(sprintf('Saved as %s', nam_mat));
 
