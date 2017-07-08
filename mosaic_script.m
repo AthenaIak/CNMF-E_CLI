@@ -2,7 +2,7 @@ clc; clear; close all;
 
 srcDir = '~/tp/athina/Mosaic-MATLAB/src';
 
-% set_parameters='~/tp/athina/CNMF-E_CLI/parameters_an001_mosaic';
+set_parameters='~/Data/32364/parameters_an003_mosaic';
 run (set_parameters);
 
 %parameters that lead to extensive motion detected but seemingly good
@@ -29,6 +29,8 @@ prefs = mosaic.Preferences(prefsFile, workDir, memoryQuota, driveQuota);
 mosaic.initialize('preferences', prefs);
 
 %% motion correct each movie
+refName = fullfile(outDir,'referenceFrame.tif');
+
 for m = 1:numMovies
     % load movie
     movie = mosaic.loadMovieTiff(fullfile(inDir, movieFiles{m}));
@@ -44,12 +46,10 @@ for m = 1:numMovies
        'fixRowNoise', fixRowNoise, ...
        'fixDroppedFrames', fixDroppedFrames, ...
        'spatialDownsampleFactor', spatialDownsampleFactor);
-   clear fixDefectivePixels fixRowNoise fixDroppedFrames spatialDownsampleFactor;
    clear croppedMovie;
     
     % motion correct movie
     % - define the reference frame
-    refName = fullfile(outDir,'referenceFrame.tif');
     if m==1
         referenceFrame = mosaic.extractFrame(ppMovie, 'frame', 1);
     else
@@ -57,7 +57,7 @@ for m = 1:numMovies
     end
     
     mcRoi = mosaic.RectangleRoi(mosaic.Point(roi(1), roi(2)), mosaic.Point(roi(3), roi(4)));
-    %mcRoi.view(concatMovie);
+    %mcRoi.view(ppMovie);
     
     [mcMovie, translations] = mosaic.motionCorrectMovie(ppMovie, ... 
     'referenceImage', referenceFrame, ...
@@ -75,23 +75,38 @@ for m = 1:numMovies
     'maximumValue', maximumValue, ... 
     'autoCrop', false ... % true ...
     );
-    clear speedWeight parallelProcess invertImage normalizeImage;
-    clear subtractSpatialMean subtractSpatialMeanPixels applySpatialMean;
-    clear applySpatialMeanPixels minimumValue maximumValue;
-    clear ppMovie;
+    %clear ppMovie;
     
     % save motion corrected movie
     movName = fullfile(outDir, sprintf('mcorr_%s', movieFiles{m}));
     mosaic.saveMovieTiff(mcMovie, movName, 'compression', 'None');
     
     % save the last frame as a reference for next part of the movie
+    xtrans = translations.getList('types', {'mosaic.Trace'}).get(1).getData();
+    xtranslast = round(xtrans(end));
+    ytrans = translations.getList('types', {'mosaic.Trace'}).get(2).getData();
+    % find(ytrans==max(ytrans))
+    ytranslast = round(ytrans(end));
     idx = mcMovie.getTimingInfo().getNumTimes();
     lastFrame = mosaic.extractFrame(mcMovie, 'frame', idx);
+    % something goes wrong here
+    % check 
+    lastFrame2 = mosaic.extractFrame(ppMovie, 'frame', idx);
+    lastFrame2.view();
+    % the coloring is off, which is probably the cause of bad motion
+    % correction
+    % solution: do the translation ourselves from the ppMovie. 
+    % maybe mosaic has a function that facilitates this?
     mosaic.saveImageTiff(lastFrame, refName,'compression','None');
     
     clear mcMovie;
 end
 
+clear fixDefectivePixels fixRowNoise fixDroppedFrames spatialDownsampleFactor;
+clear speedWeight parallelProcess invertImage normalizeImage;
+clear subtractSpatialMean subtractSpatialMeanPixels applySpatialMean;
+clear applySpatialMeanPixels minimumValue maximumValue;
+    
 clear referenceFrame idx translations;
 %% load all motion corrected movies and concatenate movie them
 % load tiff movies
