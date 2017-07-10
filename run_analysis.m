@@ -7,12 +7,12 @@ function [ ans ] = run_analysis( set_parameters )
 %   the image to 2x2 images and then performs calculations. Default=1. If
 %   you can avoid splitting the image (enough RAM), avoid it.
 
-% set_parameters='~/tp/athina/CNMF-E_CLI/parameters_an001_cnmf';
-run (set_parameters);
-
 % add paths
 run_setup;
 clear CNMF_dir;
+
+% set_parameters='~/tp/athina/CNMF-E_CLI/parameters_an001_cnmf';
+run (set_parameters);
 
 % load the data
 data = loadRawData(filename);
@@ -59,7 +59,7 @@ Y = neuron.reshape(Y, 1);
 %neuron_raw.P.p = 2;      %order of AR model
 
 fprintf('Time cost in downsapling data:     %.2f seconds\n', toc);
-clear sframe numFrame num2read d1s d2s T data neuron_raw;
+clear sframe num2read d1s d2s T data neuron_raw;
 
 % compute correlation image and peak-to-noise ratio image.
 % this step is not necessary, but it can give you some ideas of how your
@@ -69,7 +69,7 @@ neuron.options.nb = nb; % Number of background elements (default = 1)
 [Cn, pnr] = neuron.correlation_pnr(Y(:, round(linspace(1, numFrame, 1000)))); % calls correlation_image_endoscope
 % save to be viewed where GUI is available
 [path,name,~] = fileparts(filename);
-output_dir = sprintf('%s%s%s',path,filesep,name);
+output_dir = sprintf('%s%s%s-%s',path,filesep,name,tag);
 if exist(output_dir, 'dir')
     temp = cd();
     cd(output_dir);
