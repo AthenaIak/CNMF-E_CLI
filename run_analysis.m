@@ -30,7 +30,7 @@ neuron_raw.updateParams('ssub', ssub,...  % spatial downsampling factor
     'tsub', tsub, ...  %temporal downsampling factor
     'gSig', gSig,... %width of the gaussian kernel, which can approximates the average neuron shape
     'gSiz', gSiz, ...% maximum diameter of neurons in the image plane. larger values are preferred. 
-    'dist', dist, ... % maximum size of the neuron: dist*gSiz
+    'dist', ddist, ... % maximum size of the neuron: dist*gSiz
     'search_method', search_method, ... % searching method
     'merge_thr', merge_thr, ... % threshold for merging neurons
     'bas_nonneg', bas_nonneg);   % 1: positive baseline of each calcium traces; 0: any baseline
