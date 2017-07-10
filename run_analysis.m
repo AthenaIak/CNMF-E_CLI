@@ -37,7 +37,7 @@ neuron_raw.updateParams('ssub', ssub,...  % spatial downsampling factor
 
 neuron_raw.kernel = kernel;
 
-clear fs gSig gSiz dist search_method merge_thr bas_nonneg;
+clear fs gSig gSiz ddist search_method merge_thr bas_nonneg;
 clear ssub tsub tau_decay tau_rise nframe_decay bound_pars kernel;
 
 %% downsample data for fast and better initialization
