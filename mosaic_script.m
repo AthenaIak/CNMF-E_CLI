@@ -35,31 +35,37 @@ for m = 1:numMovies
     % load movie
     movie = mosaic.loadMovieTiff(fullfile(inDir, movieFiles{m}));
     
-    % crop movie
-    croppedMovie = mosaic.cropMovie(movie, ...
-        crop(1), crop(2), crop(3), crop(4), 'coordinateSystem', 'pixels');
-    clear movie;
-    
     % preprocess movie
-    ppMovie = mosaic.preprocessMovie(croppedMovie, ...
+    ppMovie = mosaic.preprocessMovie(movie, ...
        'fixDefectivePixels', fixDefectivePixels, ...
        'fixRowNoise', fixRowNoise, ...
        'fixDroppedFrames', fixDroppedFrames, ...
        'spatialDownsampleFactor', spatialDownsampleFactor);
-   clear croppedMovie;
+   clear movie;
+   
+   % extract the last 2 frames (mosaic doesn't provide a function to crop
+   % an image, so we need a movie of minimum 2 frames) The point is to
+   % extract the last frame after we perform motion correction.
+   idx = ppMovie.getTimingInfo().getNumTimes();
+   last2frames = mosaic.trimMovie(ppMovie, idx-1, idx);
+   
+    % crop movie
+    croppedMovie = mosaic.cropMovie(ppMovie, ...
+        crop(1), crop(2), crop(3), crop(4), 'coordinateSystem', 'pixels');
+    clear ppMovie;
     
     % motion correct movie
     % - define the reference frame
     if m==1
-        referenceFrame = mosaic.extractFrame(ppMovie, 'frame', 1);
+        referenceFrame = mosaic.extractFrame(croppedMovie, 'frame', 1);
     else
         referenceFrame = mosaic.loadImage(refName);
     end
     
     mcRoi = mosaic.RectangleRoi(mosaic.Point(roi(1), roi(2)), mosaic.Point(roi(3), roi(4)));
-    %mcRoi.view(ppMovie);
+    %mcRoi.view(croppedMovie);
     
-    [mcMovie, translations] = mosaic.motionCorrectMovie(ppMovie, ... 
+    [mcMovie, translations] = mosaic.motionCorrectMovie(croppedMovie, ... 
     'referenceImage', referenceFrame, ...
     'motionType', 'Translation', ... 
     'roi', mcRoi, ... 
@@ -67,15 +73,15 @@ for m = 1:numMovies
     'parallelProcess', parallelProcess, ... 
     'invertImage', invertImage, ... 
     'normalizeImage', normalizeImage, ... 
-    'subtractSpatialMean', subtractSpatialMean, ... %true, ... 
+    'subtractSpatialMean', subtractSpatialMean, ...
     'subtractSpatialMeanPixels', subtractSpatialMeanPixels, ... 
-    'applySpatialMean', applySpatialMean, ... %true, ... 
+    'applySpatialMean', applySpatialMean, ...
     'applySpatialMeanPixels', applySpatialMeanPixels, ... 
     'minimumValue', minimumValue, ... 
     'maximumValue', maximumValue, ... 
     'autoCrop', false ... % true ...
     );
-    %clear ppMovie;
+    clear croppedMovie;
     
     % save motion corrected movie
     movName = fullfile(outDir, sprintf('mcorr_%s', movieFiles{m}));
@@ -83,23 +89,20 @@ for m = 1:numMovies
     
     % save the last frame as a reference for next part of the movie
     xtrans = translations.getList('types', {'mosaic.Trace'}).get(1).getData();
-    xtranslast = round(xtrans(end));
     ytrans = translations.getList('types', {'mosaic.Trace'}).get(2).getData();
-    % find(ytrans==max(ytrans))
+    xtranslast = round(xtrans(end));
     ytranslast = round(ytrans(end));
-    idx = mcMovie.getTimingInfo().getNumTimes();
-    lastFrame = mosaic.extractFrame(mcMovie, 'frame', idx);
-    % something goes wrong here
-    % check 
-    lastFrame2 = mosaic.extractFrame(ppMovie, 'frame', idx);
-    lastFrame2.view();
-    % the coloring is off, which is probably the cause of bad motion
-    % correction
-    % solution: do the translation ourselves from the ppMovie. 
-    % maybe mosaic has a function that facilitates this?
+    
+    mcFrames = mosaic.cropMovie(last2frames, ...
+        crop(1)+xtranslast, crop(2)+ytranslast, ...
+        crop(3)+xtranslast, crop(4)+ytranslast, 'coordinateSystem', 'pixels');
+    
+    lastFrame = mosaic.extractFrame(mcFrames, 'frame', 2);
     mosaic.saveImageTiff(lastFrame, refName,'compression','None');
     
-    clear mcMovie;
+    clear translations xtrans xtranslast ytrans ytranslast;
+    clear last2frames mcFrames lastFrame;
+    clear mcMovie; 
 end
 
 clear fixDefectivePixels fixRowNoise fixDroppedFrames spatialDownsampleFactor;
@@ -108,6 +111,14 @@ clear subtractSpatialMean subtractSpatialMeanPixels applySpatialMean;
 clear applySpatialMeanPixels minimumValue maximumValue;
     
 clear referenceFrame idx translations;
+
+%% clear matlab's memory
+% by this time, matlab has allocated a lot of space that it didn't free. we
+% need to free matlab memory
+pack;
+% if this fails, then run the first section (starts with clc; clear; close
+% all;) move forward, skipping the 2nd section (motion correction).
+
 %% load all motion corrected movies and concatenate movie them
 % load tiff movies
 movies = mosaic.List('mosaic.Movie');
@@ -127,6 +138,7 @@ clear ppMovies;
 
 if time_down
 desiredStep = 0.2; % CNMF wants 5 Hz data input
+currentStep = concatMovie.getTimingInfo().getStep();
 downsamplingFactor = round(desiredStep / currentStep);
 
 downsMovie = mosaic.resampleMovie(concatMovie, ...
