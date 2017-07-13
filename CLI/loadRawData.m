@@ -26,8 +26,8 @@ data = matfile(nam_mat);
 try
     Yfs = data.Yfs;
 catch
-    warning('Frequency not specified. Assumed frequency is 20Hz.');
-    Yfs = 20;
+    warning('Frequency not specified. Assumed frequency is 5Hz.');
+    Yfs = 5;
 end
 
 fsChanged = false;
