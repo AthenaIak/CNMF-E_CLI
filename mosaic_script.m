@@ -1,8 +1,8 @@
 clc; clear; close all;
 
-srcDir = '~/tp/athina/Mosaic-MATLAB/src';
+srcDir = '~/tr/athina/Mosaic-MATLAB/src';
 
-set_parameters='~/Data/32364/parameters_an003_mosaic';
+set_parameters='~/tr/athina/Data/32366/parameters_an004_mosaic';
 run (set_parameters);
 
 %parameters that lead to extensive motion detected but seemingly good
@@ -30,7 +30,7 @@ mosaic.initialize('preferences', prefs);
 
 %% motion correct each movie
 refName = fullfile(outDir,'referenceFrameInfo.mat');
-
+maxXtrans=0; minXtrans=0; maxYtrans=0; minYtrans=0;
 for m = 1:numMovies
     % load movie
     movie = mosaic.loadMovieTiff(fullfile(inDir, movieFiles{m}));
@@ -72,7 +72,7 @@ for m = 1:numMovies
     
         [~, translations] = mosaic.motionCorrectMovie(moviePart, ... 
             'referenceImage', referenceFrame, ...
-            'motionType', 'Translation', ... 
+            'motionType', motionType, ... 
             'roi', mcRoi, ... 
             'speedWeight', speedWeight, ... 
             'parallelProcess', parallelProcess, ... 
@@ -91,6 +91,23 @@ for m = 1:numMovies
         ytrans = translations.getList('types', {'mosaic.Trace'}).get(2).getData();
         xtransmedian = round(median(xtrans));
         ytransmedian = round(median(ytrans));
+        
+        tmp = max(xtrans);
+        if maxXtrans < tmp
+            maxXtrans = tmp;
+        end
+        tmp = min(xtrans);
+        if minXtrans > tmp
+            minXtrans = tmp;
+        end
+        tmp = max(ytrans);
+        if maxYtrans < tmp
+            maxYtrans = tmp;
+        end
+        tmp = min(ytrans);
+        if minYtrans > tmp
+            minYtrans = tmp;
+        end
     
         refFrames = mosaic.cropMovie(last2frames_prev, ...
         crop(1)+xtransmedian, crop(2)+ytransmedian, ...
@@ -107,7 +124,7 @@ for m = 1:numMovies
     
     [mcMovie, translations] = mosaic.motionCorrectMovie(croppedMovie, ... 
     'referenceImage', referenceFrame, ...
-    'motionType', 'Translation', ... 
+    'motionType', motionType, ... 
     'roi', mcRoi, ... 
     'speedWeight', speedWeight, ... 
     'parallelProcess', parallelProcess, ... 
@@ -151,6 +168,22 @@ clear subtractSpatialMean subtractSpatialMeanPixels applySpatialMean;
 clear applySpatialMeanPixels minimumValue maximumValue;
     
 clear referenceFrame idx translations;
+
+%% remove empty space caused by motion correction
+for m=1:numMovies
+    movie = mosaic.loadMovieTiff(fullfile(outDir, sprintf('mcorr_%s', movieFiles{m})));
+
+    datasize = movie.getDataSize(); % returns Y X T ?
+    
+    % crop movie
+    croppedMovie = mosaic.cropMovie(movie, ...
+        floor(maxXtrans)+1, floor(maxYtrans)+1, ...
+        datasize(2)+floor(minXtrans)-1, ... 
+        datasize(1)+floor(minYtrans)-1, 'coordinateSystem', 'pixels');
+    
+    movName = fullfile(outDir, sprintf('mcorr_%s', movieFiles{m}));
+    mosaic.saveMovieTiff(croppedMovie, movName, 'compression', 'None');
+end
 
 %% clear matlab's memory
 % by this time, matlab has allocated a lot of space that it didn't free. we
@@ -204,7 +237,7 @@ clear concatMovie;
 % remove unwanted columns, rule: min(sum(Y,1),[],3)==0;
 
 % keep only rows and columns that never had sum=0.
-Y = Y(find(min(sum(Y,2),[],3)~=0),find(min(sum(Y,1),[],3)~=0),:);
+%Y = Y(find(min(sum(Y,2),[],3)~=0),find(min(sum(Y,1),[],3)~=0),:);
 
 % save some meta-data
 Ysiz = size(Y)';
