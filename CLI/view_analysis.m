@@ -1,7 +1,7 @@
 %% view all steps of the analysis
 % first select the folder that contains all relevant data (define path)
-path = '~/Data/32364/cnmf_results2/';
-cd ~/tp/athina/CNMF-E_CLI;
+path = '~/tr/athina/Data/32366/cnmf_output006/';
+cd ~/tr/athina/CNMF-E_CLI;
 run_setup;
 %% plot correlation image and peak-to-noise-ratio of the raw data
 % can give you some ideas of how your data look like
@@ -115,7 +115,7 @@ colormap(c_dual);
 figure(1); 
 
 for i=1:neurons_detected-1
-    for j=i:neurons_detected
+    for j=i+1:neurons_detected
         pw_corr = corr(neuron.A(:,i),neuron.A(:,j));
         if pw_corr > corr_thres
             subplot('421');
