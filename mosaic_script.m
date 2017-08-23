@@ -3,7 +3,7 @@ pack;
 
 srcDir = '~/tu/athina/Mosaic-MATLAB/src';
 
-set_parameters='~/tu/athina/Data/32366/parameters_an006_mosaic';
+set_parameters='~/tu/athina/Data/32366/parameters_an009_mosaic';
 run (set_parameters);
 
 %parameters that lead to extensive motion detected but seemingly good
@@ -63,6 +63,9 @@ for m = 1:numMovies
         'spatialReduction', 1, ...
         'temporalReduction', down_factor);
     end
+   
+   %TODO: print out here how many frames the movie has
+   % save this info so that we know when each new session starts
    
    % extract the last 2 frames (mosaic doesn't provide a function to crop
    % an image, so we need a movie of minimum 2 frames) The point is to
