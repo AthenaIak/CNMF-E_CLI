@@ -1,6 +1,6 @@
 %% view all steps of the analysis
 % first select the folder that contains all relevant data (define path)
-path = '~/cb/Data/ready_20170710-006-004/';
+path = '~/tu/athina/data/32364/10-07-2017/mosaic_output/ready_20170710-009-005/';
 cd ~/tu/athina/CNMF-E_CLI;
 run_setup;
 %% plot correlation image and peak-to-noise-ratio of the raw data
