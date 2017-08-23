@@ -3,7 +3,7 @@ pack;
 
 srcDir = '~/tu/athina/Mosaic-MATLAB/src';
 
-set_parameters='~/tu/athina/Data/32366/parameters_an006_mosaic';
+set_parameters='~/tu/athina/Data/32366/parameters_an009_mosaic';
 run (set_parameters);
 
 %parameters that lead to extensive motion detected but seemingly good
@@ -35,16 +35,37 @@ mcRoi = mosaic.RectangleRoi(mosaic.Point(roi(1), roi(2)), mosaic.Point(roi(3), r
 
 maxXtrans=0; minXtrans=0; maxYtrans=0; minYtrans=0;
 for m = 1:numMovies
-    % load movie
-    movie = mosaic.loadMovieTiff(fullfile(inDir, movieFiles{m}));
+    numFiles = length(movieFiles{m});
+    % load movie files
+    movies = mosaic.List('mosaic.Movie');
+    for f = 1:numFiles
+        movie = mosaic.loadMovieTiff(fullfile(inDir, movieFiles{m}{f}));
+        movies.add(movie);
+    end
+    clear movie;
+    
+    % concat session into one movie
+    session = mosaic.concatenateMovies(movies, ...
+        'gapType', 'Add one time period between movies');
+    clear movies;
     
     % preprocess movie
-    ppMovie = mosaic.preprocessMovie(movie, ...
+    ppMovie = mosaic.preprocessMovie(session, ...
        'fixDefectivePixels', fixDefectivePixels, ...
        'fixRowNoise', fixRowNoise, ...
        'fixDroppedFrames', fixDroppedFrames, ...
        'spatialDownsampleFactor', spatialDownsampleFactor);
-   clear movie;
+   clear session;
+   
+    % temporally downsample movie
+    if time_down
+        ppMovie = mosaic.resampleMovie(ppMovie, ...
+        'spatialReduction', 1, ...
+        'temporalReduction', down_factor);
+    end
+   
+   %TODO: print out here how many frames the movie has
+   % save this info so that we know when each new session starts
    
    % extract the last 2 frames (mosaic doesn't provide a function to crop
    % an image, so we need a movie of minimum 2 frames) The point is to
@@ -93,7 +114,7 @@ for m = 1:numMovies
         xtransmedian = round(median(xtrans));
         ytransmedian = round(median(ytrans));
         
-         tmp = max(xtrans);
+        tmp = max(xtrans);
          if maxXtrans < tmp
             maxXtrans = tmp;
         end
@@ -141,7 +162,7 @@ for m = 1:numMovies
     clear croppedMovie;
     
     % save motion corrected movie
-    movName = fullfile(outDir, sprintf('mcorr_%s', movieFiles{m}));
+    movName = fullfile(outDir, sprintf('mcorr_%s', movieFiles{m}{1}));
     mosaic.saveMovieTiff(mcMovie, movName, 'compression', 'None');
     
     % save the last frame as a reference for next part of the movie
@@ -151,7 +172,7 @@ for m = 1:numMovies
     ytranslast = round(ytrans(end));
     
     disp(sprintf('File %s\nvariation x = %f | range x = %f\nvariation y = %f | range y = %f', ...
-        movieFiles{m}, var(xtrans), range(xtrans), ...
+        movieFiles{m}{1}, var(xtrans), range(xtrans), ...
         var(ytrans), range(ytrans)));
     
     last2frames_prev = last2frames;
@@ -171,7 +192,7 @@ clear referenceFrame idx translations;
 
 %% remove empty space caused by motion correction
 for m=1:numMovies
-   movie = mosaic.loadMovieTiff(fullfile(outDir, sprintf('mcorr_%s', movieFiles{m})));
+   movie = mosaic.loadMovieTiff(fullfile(outDir, sprintf('mcorr_%s', movieFiles{m}{1})));
 
    datasize = movie.getDataSize(); % returns Y X T ?
     
@@ -181,7 +202,7 @@ for m=1:numMovies
        datasize(2)+floor(minXtrans)-1, ... 
        datasize(1)+floor(minYtrans)-1, 'coordinateSystem', 'pixels');
     
-   movName = fullfile(outDir, sprintf('mcorr_%s', movieFiles{m}));
+   movName = fullfile(outDir, sprintf('mcorr_%s', movieFiles{m}{1}));
    mosaic.saveMovieTiff(croppedMovie, movName, 'compression', 'None');
 end
 
@@ -200,7 +221,7 @@ mosaic.initialize('preferences', prefs);
 % load tiff movies
 movies = mosaic.List('mosaic.Movie');
 for m = 1:numMovies
-    movie = mosaic.loadMovieTiff(fullfile(outDir, sprintf('mcorr_%s', movieFiles{m})));
+    movie = mosaic.loadMovieTiff(fullfile(outDir, sprintf('mcorr_%s', movieFiles{m}{1})));
     movies.add(movie);
 end
 clear movie;
@@ -209,27 +230,10 @@ concatMovie = mosaic.concatenateMovies(movies, ...
     'gapType', 'Add one time period between movies');
 clear ppMovies;
 
-%% Temporally downsample and save as .mat for CNMF-E
-% actually, CNMF-E doesn't need 5 Hz input. Let's try with normal input and
-% compare.
+%% Save as .mat for CNMF-E
 
 currentStep = concatMovie.getTimingInfo().getStep();
-
-if time_down
-desiredStep = 0.2; % CNMF wants 5 Hz data input
-downsamplingFactor = round(desiredStep / currentStep);
-
-downsMovie = mosaic.resampleMovie(concatMovie, ...
-    'spatialReduction', 1, ...
-    'temporalReduction', downsamplingFactor);
-
-Y = downsMovie.getData();
-currentStep = desiredStep;
-else
-    Y = concatMovie.getData();
-end
-clear concatMovie;
-%Y = Y(:,:,1:downsamplingFactor:end);
+Y = concatMovie.getData();
 
 % remove unwanted rows (caused by motion correction)
 % 1. sum over columns if sum=0, then the row is blank and it should not be
@@ -245,7 +249,7 @@ Y = Y(find(min(sum(Y,2),[],3)~=0),find(min(sum(Y,1),[],3)~=0),:);
 
 % save some meta-data
 Ysiz = size(Y)';
-Yfs = 1/currentStep;
+Yfs = (1/currentStep)/down_factor;
 
 nam_mat = fullfile(outDir, outFileName);
 save(nam_mat, 'Y', 'Ysiz', 'Yfs', '-v7.3');

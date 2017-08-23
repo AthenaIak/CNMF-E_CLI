@@ -1,7 +1,7 @@
 %% view all steps of the analysis
 % first select the folder that contains all relevant data (define path)
-path = '~/tr/athina/Data/32366/cnmf_output006/';
-cd ~/tr/athina/CNMF-E_CLI;
+path = '~/cb/Data/ready_20170710-006-004/';
+cd ~/tu/athina/CNMF-E_CLI;
 run_setup;
 %% plot correlation image and peak-to-noise-ratio of the raw data
 % can give you some ideas of how your data look like

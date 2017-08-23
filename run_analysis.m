@@ -11,7 +11,7 @@ function [ ans ] = run_analysis( set_parameters )
 run_setup;
 clear CNMF_dir;
 
-% set_parameters='~/tp/athina/CNMF-E_CLI/parameters_an001_cnmf';
+% set_parameters='~/tu/athina/Data/32366/parameters_an004_cnmf';
 run (set_parameters);
 
 % load the data
