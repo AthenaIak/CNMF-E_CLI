@@ -3,7 +3,7 @@ pack;
 
 srcDir = '~/tu/athina/Mosaic-MATLAB/src';
 
-set_parameters='~/tu/athina/Data/analyzed/parameters/parameters_an001_mosaic';
+set_parameters='~/tu/athina/Data/analyzed/parameters/parameters_an013_mosaic';
 run (set_parameters);
 
 prefsFile = '/home/athina/Data/inscopix/examplePrefs.mat';

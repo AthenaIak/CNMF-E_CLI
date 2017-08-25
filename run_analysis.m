@@ -11,11 +11,23 @@ function [ ans ] = run_analysis( set_parameters )
 run_setup;
 clear CNMF_dir;
 
-% set_parameters='~/tu/athina/Data/32366/parameters_an004_cnmf';
+% set_parameters='~/tu/athina/Data/analyzed/parameters/parameters_an006_cnmf';
 run (set_parameters);
 
 % load the data
-data = loadRawData(filename);
+%data = loadRawData(filename);
+[~,~,ext] = fileparts(filename);
+
+if strcmp(ext,'.tif')
+    nam_mat = tif2mat(filename);
+elseif strcmp(ext,'.mat')
+    nam_mat = filename;
+else
+    disp('Unsupported format: only .tif and .mat files allowed');
+    exit(1);
+end
+data = matfile(nam_mat);
+clear ext num_mat;
 
 Ysiz = data.Ysiz;
 d1 = Ysiz(1);   %height
@@ -51,7 +63,7 @@ if and(neuron_raw.options.ssub==1, neuron_raw.options.tsub==1)
     [d1s,d2s, T] = size(Y);
     fprintf('\nThe data has been loaded into RAM. It has %d X %d pixels X %d frames. \nLoading all data requires %.2f GB RAM\n\n', d1s, d2s, T, d1s*d2s*T*8/(2^30));
 else
-    [Y, neuron] = neuron_raw.load_data(mat_filename, sframe, num2read);
+    [Y, neuron] = neuron_raw.load_data(nam_mat, sframe, num2read);
     [d1s,d2s, T] = size(Y);
     fprintf('\nThe data has been downsampled and loaded into RAM. It has %d X %d pixels X %d frames. \nLoading all data requires %.2f GB RAM\n\n', d1s, d2s, T, d1s*d2s*T*8/(2^30));
 end
@@ -156,10 +168,10 @@ fprintf('Time cost in estimating the background:        %.2f seconds\n', toc);
 % subtract the background from the raw data.
 Ysignal = Y - Ybg;
 clear Ybg ssub  rr active_px;
-disp('Saving video data after subtracting the background...');
-nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f04-Ysignal_background_subtracted.mat');
-save(nam_mat, 'Ysignal', 'neuron', '-v7.3');
-disp(sprintf('Saved as %s', nam_mat));
+%disp('Saving video data after subtracting the background...');
+%nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f04-Ysignal_background_subtracted.mat');
+%save(nam_mat, 'Ysignal', 'neuron', '-v7.3');
+%disp(sprintf('Saved as %s', nam_mat));
 
 for i=1:10
 %% update spatial components (cell 2), we can iteratively run cell 2& 3 for few times and then run cell 1
@@ -204,10 +216,10 @@ fprintf('Time cost in estimating the background:        %.2f seconds\n', toc);
 % subtract the background from the rawls data.
 Ysignal = Y - Ybg;
 clear Ybg ssub rr active_px sn;
-disp('Saving video data after subtracting the background (end)...');
-nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f05-Ysignal_end.mat');
-save(nam_mat, 'Ysignal', 'neuron', '-v7.3');
-disp(sprintf('Saved as %s', nam_mat));
+%disp('Saving video data after subtracting the background (end)...');
+%nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f05-Ysignal_end.mat');
+%save(nam_mat, 'Ysignal', 'neuron', '-v7.3');
+%disp(sprintf('Saved as %s', nam_mat));
 
 %% pick neurons from the residual (cell 4). It's not always necessary
 %{
@@ -225,10 +237,10 @@ clear Yres;
 %}
 
 %% save results
-result_nm = [path, 'results.mat'];
-neuron.save_results(result_nm, '-v7.3'); %save variable 'neuron' only.
+nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'results.mat');
+neuron.save_results(nam_mat, '-v7.3'); %save variable 'neuron' only.
 % neuron.save_results(result_nm, neuron.reshape(Ybg, 2)); % save background as well
-clear result_nm;
+clear nam_mat;
 
 %% save neurons for display
 dir_neurons = sprintf('%s%s%s%sneurons%s', path,filesep,name,filesep,filesep);
