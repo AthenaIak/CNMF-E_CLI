@@ -1,6 +1,4 @@
 function [ ] = run_analysis( set_parameters )
-clc; clear; close all;
-pack;
 
 srcDir = '~/tu/athina/Mosaic-MATLAB/src';
 
