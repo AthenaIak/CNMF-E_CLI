@@ -1,7 +1,7 @@
 %% view all steps of the analysis
 % first select the folder that contains all relevant data (define path)
 path = '~/tu/athina/Data/analyzed/32363/10.07.2017/ready_20170710_132114-008';
-cd ~/tu/athina/CNMF-E_CI;
+cd ~/tu/athina/CNMF-E_CLI;
 run_setup;
 %% plot correlation image and peak-to-noise-ratio of the raw data
 % can give you some ideas of how your data look like
@@ -62,7 +62,7 @@ else
     mkdir(dir_neurons);
 end
 neuron.viewNeurons([], neuron.C_raw, dir_neurons);
-clear dir_neurons; clear neuron;
+clear dir_neurons neuron referenceImg;
 
 %% display contours of the neurons
 load(fullfile(path,'f07-contours.mat'));
@@ -105,7 +105,6 @@ else
     disp('The folder has been created and old results will be overwritten. \n');
 end
 cd(folder_nm);
-
 c1= colormap(gray);
 c2 = colormap(pink);
 c_dual = [c1(1:2:64,:); c2(1:2:64,:)];
@@ -161,57 +160,7 @@ clear cur_cd dir_neurons folder_nm;
 clear ax ax1 ax2 str_xlabel allYLim;
 clear i j t T;
 
-
-%% measure hollowness of each neuron
-load(fullfile(path,'f06-neurons.mat'));
-figure;
-for i=1:size(neuron.C,1)
-neur = reshape(neuron.A(:,i), size(neuron.Cn));
-
-neurClean = zeros(size(neur));
-neurClean(find(neur>mean(neur(neur>0)))) = neur(find(neur>mean(neur(neur>0))));
-%neurClean(find(neur>0)) = neur(find(neur>0));
-[x,y] = ind2sub(size(neurClean),find(neurClean>0));
-minx = min(x);
-maxx = max(x);
-miny = min(y);
-maxy = max(y);
-neurClean = neurClean(minx:maxx,miny:maxy);
-
-[realCenterVal,centerX] = max(max(neurClean));
-[~,centerY] = max(neurClean);
-centerY = centerY(centerX);
-
-ideal = zeros(size(neurClean));
-halfSiz = min(min(centerY,size(neurClean,1)-centerY+1),min(centerX,size(neurClean,2)-centerX+1));
-gSiz = halfSiz*2-1;
-rowStart = centerY - halfSiz + 1;
-colStart = centerX - halfSiz + 1;
-
-%pd = fitdist(reshape(neurClean,[],1),'Normal');
-%gSig = sqrt(std(pd));
-
-ideal(rowStart:rowStart+gSiz-1,colStart:colStart+gSiz-1) = ...
- fspecial('gaussian', gSiz, gSiz/3);
-gaussianCenterVal = ideal(rowStart+round(gSiz/2),colStart+round(gSiz/2));
-gaussianFactor = realCenterVal/gaussianCenterVal;
-ideal = ideal * gaussianFactor;
-
-neur1d = reshape(neurClean,1,[]);
-ideal1d = reshape(ideal,1,[]);
-error = sqrt(sum(bsxfun(@minus,neur1d,ideal1d).^2,2));
-%error = sqrt(sum(bsxfun(@minus,neur1d(neur1d==0),ideal1d(neur1d==0)).^2,2));
-%error = error + ...
-%     sqrt(sum(bsxfun(@minus,neur1d(ideal1d==0),ideal1d(ideal1d==0)).^2,2));
-disp(sprintf('Neuron %d has error %.1f', i, error));
-
-subplot('211');imagesc(neur);title(sprintf('Neuron %d', i));
-subplot('223');imagesc(neurClean);title('Cleaned');
-subplot('224');imagesc(ideal);title(sprintf('Error %.1f',error));
-pause;
-end
-
-%% method 2: don't fit gaussian to center
+%% Measure hollowness of each neuron
 load(fullfile(path,'f06-neurons.mat'));
 
 % create dir to save images
@@ -223,6 +172,8 @@ else
     disp('The folder has been created and old results will be overwritten. \n');
 end
 cd(folder_nm);
+
+errors = zeros(1,size(neuron.C,1));
 
 figure;
 for i=1:size(neuron.C,1)
@@ -256,13 +207,21 @@ ideal = ideal * gaussNormalFactor;
 neur1d = reshape(neurClean,1,[]);
 ideal1d = reshape(ideal,1,[]);
 error = sqrt(sum(bsxfun(@minus,neur1d,ideal1d).^2,2));
-if error>19
-disp(sprintf('Neuron %d has error %.1f', i, error));
-end
+errors(i) = error;
 
-subplot('211');imagesc(neur);title(sprintf('Neuron %d', i));
-subplot('223');imagesc(neurClean);title('Cleaned');
-subplot('224');imagesc(ideal);title(sprintf('Error %.1f px:%d',error,numel(ideal)));
+ax1 = subplot('211'); 
+%imshow(referenceImg); %imported from file
+%imagesc(referenceImg);
+imagesc(referenceImg); hold on;
+h = imagesc(neur); hold off;
+alpha = neur>0;
+set(h,'AlphaData',alpha);
+title(sprintf('Neuron %d', i));
+ax2 = subplot('223');imagesc(neurClean); title('Cleaned');
+ax3 = subplot('224');imagesc(ideal);title(sprintf('Error %.1f px:%d',error,numel(ideal)));
+colormap(ax1,'gray');
+colormap(ax2,'default');
+colormap(ax3,'default');
 
 saveas(gcf, sprintf('neuron_%03d_holl_%0.1f.png', i,error));
 end
@@ -272,5 +231,6 @@ clear x y maxx minx maxy miny;
 clear neur neurClean ideal neur1d ideal1d;
 clear colStart rowStart;
 clear gSiz gaussianCenterVal realCenterVal realNormalFactor gaussNormalFactor;
-clear i error folder_nm cur_cd;
-clear dir_neurons neuron;
+clear i error errors folder_nm cur_cd;
+clear ax1 ax2 ax3 h alpha;
+clear dir_neurons neuron referenceImg;

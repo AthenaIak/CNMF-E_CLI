@@ -244,9 +244,10 @@ clear nam_mat;
 
 %% save neurons for display
 dir_neurons = sprintf('%s%s%s-%s%sneurons%s', path,filesep,name,tag,filesep,filesep);
+referenceImg = mean(Y(:,:,1:100),3);
 disp('Saving neuron and neurons dir...');
 nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f06-neurons.mat');
-save(nam_mat, 'dir_neurons', 'neuron', '-v7.3');
+save(nam_mat, 'dir_neurons', 'neuron', 'referenceImg', '-v7.3');
 disp(sprintf('Saved as %s', nam_mat));
 clear dir_neurons;
 
