@@ -1,0 +1,109 @@
+%% find bad frames given a known bad frame
+
+%input
+inDir = '~/tu/evelien/Calcium imaging/32363-32366/Session 1 10.07-14.07/10.07.2017/32363';
+movieFiles = {
+    {'recording_20170710_132114.tif', ...
+    'recording_20170710_132114-001.tif', ...
+    'recording_20170710_132114-002.tif', ...
+    'recording_20170710_132114-003.tif', ...
+    'recording_20170710_132114-004.tif'}
+    {'recording_20170710_132808.tif', ...
+    'recording_20170710_132808-001.tif', ...
+    'recording_20170710_132808-002.tif', ...
+    'recording_20170710_132808-003.tif', ...
+    'recording_20170710_132808-004.tif'}
+    {'recording_20170710_133609.tif', ...
+    'recording_20170710_133609-001.tif', ...
+    'recording_20170710_133609-002.tif', ...
+    'recording_20170710_133609-003.tif', ...
+    'recording_20170710_133609-004.tif'}
+    {'recording_20170710_134245.tif', ...
+    'recording_20170710_134245-001.tif', ...
+    'recording_20170710_134245-002.tif', ...
+    'recording_20170710_134245-003.tif', ...
+    'recording_20170710_134245-004.tif'}
+    {'recording_20170710_135009.tif', ...
+    'recording_20170710_135009-001.tif', ...
+    'recording_20170710_135009-002.tif', ...
+    'recording_20170710_135009-003.tif', ...
+    'recording_20170710_135009-004.tif'}
+    {'recording_20170710_135616.tif', ...
+    'recording_20170710_135616-001.tif', ...
+    'recording_20170710_135616-002.tif', ...
+    'recording_20170710_135616-003.tif', ...
+    'recording_20170710_135616-004.tif'}
+    {'recording_20170710_140430.tif', ...
+    'recording_20170710_140430-001.tif', ...
+    'recording_20170710_140430-002.tif', ...
+    'recording_20170710_140430-003.tif', ...
+    'recording_20170710_140430-004.tif'}
+    {'recording_20170710_141027.tif', ...
+    'recording_20170710_141027-001.tif', ...
+    'recording_20170710_141027-002.tif', ...
+    'recording_20170710_141027-003.tif', ...
+    'recording_20170710_141027-004.tif'}
+};
+knownBadFrame = 463;
+errorCeil = 2000; % error ceiling for detecting similar frames
+
+% parameters
+padding = 200;
+downFactor = 0.05;
+
+numMovies = length(movieFiles);
+badFrames = '{\n';
+for m=1:numMovies
+    numFiles = length(movieFiles{m});
+    badFrames = strcat(badFrames,'{\n');
+    
+    for f = 1:numFiles
+        in_nam = fullfile(inDir,movieFiles{m}{f});
+        Y = bigread2(in_nam);
+        numFrames = size(Y,3);
+        
+        %preprocess for speed and elimination for small motions
+        smallY = imresize(Y(padding:end-padding,padding:end-padding,:),downFactor);
+        
+        if exist('knownBadFrame','var')
+                referY = smallY(:,:,knownBadFrame);
+            clear knownBadFrame;
+        end
+        
+        % calculate error/similarity (bad frames = low error)
+        errors = zeros(1,numFrames);
+        for i=1:numFrames
+                error = sqrt(sum(bsxfun(@minus, reshape(smallY(:,:,i),1,[]), ...
+                    reshape(referY,1,[])).^2,2));
+                errors(i) = error;
+        end
+        
+        % make a string ready to be pasted on analysis document
+        badIdx = find(errors(1,:)<errorCeil);
+        badFrames = strcat(badFrames,'{');
+        for i=1:length(badIdx)
+            if i==1
+                if (length(badIdx)>1) && (badIdx(2) == badIdx(1)+1)
+                    badFrames = strcat(badFrames,sprintf('%d:',badIdx(i)));
+                end
+            elseif (badIdx(i)~=badIdx(i-1)+1)
+                badFrames = strcat(badFrames,sprintf('%d;',badIdx(i-1)));
+                if (badIdx(end) ~= badIdx(i)) && (badIdx(i)==badIdx(i+1)-1)
+                    badFrames = strcat(badFrames,sprintf('%d:',badIdx(i)));
+                end
+            end
+        end
+        if isempty(badIdx)
+            badFrames = strcat(badFrames,'},');
+        else
+            badFrames = strcat(badFrames,sprintf('%d},',badIdx(end)));
+        end
+        clear smallY;
+    end
+    badFrames = strcat(badFrames,'\n}\n');
+end
+badFrames = strcat(badFrames,'}\n');
+
+disp('badFrames = ');
+fprintf(badFrames);
+

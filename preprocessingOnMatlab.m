@@ -16,7 +16,7 @@ for m=1:numMovies
     for f = 1:numFiles
         in_nam = fullfile(inDir,movieFiles{m}{f});
         
-        %load movie files
+        %load movie file
         fprintf('Loading file %d/%d from movie %d/%d...\n', ...
             f,numFiles,m,numMovies); tic;
         tmpY = bigread2(in_nam);
