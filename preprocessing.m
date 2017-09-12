@@ -1,74 +1,97 @@
-function [ ] = run_analysis( set_parameters )
+function [] = preprocessing(set_parameters)
 
-srcDir = '~/tu/athina/Mosaic-MATLAB/src';
+TIFF_MAX_FRAMES = 1349;
 
-%set_parameters='~/tu/athina/Data/analyzed/parameters/parameters_preproc_32363_day1';
+run_setup;
+clear CNMF_dir;
+
+% set_parameters='~/tu/athina/Data/analyzed/parameters/parameters_an014_preproc';
 run (set_parameters);
-
-prefsFile = '/home/athina/Data/inscopix/examplePrefs.mat';
-workDir = '/home/athina/Data/inscopix/temp';
-
 numMovies = length(movieFiles);
 
-if ~exist(outDir, 'dir')
-    mkdir(outDir);
-end
-
-addpath(srcDir);
-
-prefs = mosaic.Preferences(prefsFile, workDir, memoryQuota, driveQuota);
-mosaic.initialize('preferences', prefs);
-
-%% preprocess the session
 for m=1:numMovies
-    
-    disp(sprintf('TRIAL #%d',m));
-
     numFiles = length(movieFiles{m});
     
-    % load movie files
-    disp('Loading files...');
-    movies = mosaic.List('mosaic.Movie');
+    curr_id = 1;
     for f = 1:numFiles
-        movie = mosaic.loadMovieTiff(fullfile(inDir, movieFiles{m}{f}));
-        movies.add(movie);
-        disp(sprintf('Loaded %s', movieFiles{m}{f}));
+        in_nam = fullfile(inDir,movieFiles{m}{f});
+        
+        %load movie file
+        fprintf('Loading file %d/%d from movie %d/%d...\n', ...
+            f,numFiles,m,numMovies); tic;
+        tmpY = bigread2(in_nam);
+        fprintf('Time cost of loading images: %.2f seconds\n', toc);
+        
+        %replace bad frames with weighted averages of previous and next
+        %good frame.
+        %check if empty 
+        if ~isempty(badFrames{m}{f})
+            for badSet=1:size(badFrames{m}{f},1)
+                prevFrame = badFrames{m}{f}{badSet}(1) - 1;
+                nextFrame = badFrames{m}{f}{badSet}(end) + 1;
+                numBad = size(badFrames{m}{f}{badSet},2);
+
+                weights = linspace(1,0,numBad+2);
+                weights = weights(2:end-1);
+                for bf = 1:numBad
+                    tmpY(:,:,prevFrame+bf) = tmpY(:,:,prevFrame)*weights(bf)+...
+                        tmpY(:,:,nextFrame)*(1-weights(bf));
+                end
+            end
+            disp('Replaced bad frames.');
+        else
+            disp('No bad frames defined.');
+        end
+        
+        numFrames = size(tmpY,3);
+        Y(:,:,curr_id:curr_id+numFrames-1) = tmpY;
+        clear tmpY;
+        curr_id = curr_id + numFrames;
     end
-    clear movie f;
-    disp('Done loading');
-
-    % concat trial into one movie
-    disp('Concatenating files...');
-    trial = mosaic.concatenateMovies(movies, ...
-        'gapType', 'Add one time period between movies');
-    clear movies;
-    disp('Done concatenating');
-
-    % preprocess trial
-    disp('Preprocessing trial...');
-    ppMovie = mosaic.preprocessMovie(trial, ...
-        'fixDefectivePixels', fixDefectivePixels, ...
-        'fixRowNoise', fixRowNoise, ...
-        'fixDroppedFrames', fixDroppedFrames, ...
-        'spatialDownsampleFactor', spatialDownsampleFactor);
-    clear trial;
-    disp('Done preprocessing');
-
-    % temporally downsample movie
-    disp('Temporally downsampling...');
-    if time_down
-        ppMovie = mosaic.resampleMovie(ppMovie, ...
-            'spatialReduction', 1, ...
-            'temporalReduction', down_factor);
+    clear curr_id in_nam;
+    clear badSet prevFrame nextFrame numBad weights bf;
+    
+    
+    %temporally downsample
+    downY = Y(:,:,1:down_factor:end);
+    clear Y;
+    
+    %calculate indexes of replaced frames
+    %first calculate the change resulting from file concatenation
+    curr_id=1;
+    for f=1:numFiles
+        for badSet=1:size(badFrames{m}{f},1)
+            vals = badFrames{m}{f}{badSet};
+            numFr = size(vals,2);
+            replaced(curr_id:curr_id+numFr-1) = vals+TIFF_MAX_FRAMES*(f-1);
+            curr_id=curr_id+numFr;
+        end
     end
-    disp('Done downsampling');
-
-    % save trial that is ready for motion correction
-    disp('Saving preprocessed movie...');
-    movName = fullfile(outDir, sprintf('pp_%s', movieFiles{m}{1}));
-    mosaic.saveMovieTiff(ppMovie, movName, 'compression', 'None');
-    disp(sprintf('Saved as %s', movName));
+    clear vals badSet f numFr;
+    
+    %now calculate the change resulting from downsampling
+    replacedInUse = replaced(mod(replaced,down_factor)==1);
+    newIdxs = floor(replacedInUse/down_factor)+1;
+    clear replaced replacedInUse;
+    
+    disp('Indexes of frames with artificial data:');
+    disp(newIdxs);
+    
+    %save as tiff
+    [~,rec_nam,~] = fileparts(movieFiles{m}{1});
+    curr_id=1;
+    for img=1:min(size(downY,3))
+        if mod(img,TIFF_MAX_FRAMES)==1
+            outputFileName = fullfile(outDir,sprintf('pp_%s-%d.tif',rec_nam,curr_id));
+            curr_id = curr_id+1;
+        end
+        imwrite(downY(:, :, img), outputFileName, ...
+            'WriteMode', 'append', 'Compression','none');
+    end
+    
+    %clear unnecessary memory
+    pack;
 end
 
-%% Terminate the Mosaic script session.
-mosaic.terminate();
+clear numMovies
+
