@@ -93,9 +93,11 @@ for m=1:numMovies
             'WriteMode', 'append', 'Compression','none');
     end
     
-    %clear unnecessary memory
-    pack;
+    fprintf('Done writing movie %d',m);    
+   
 end
+
+disp('--- END OF PREPROCESSING ---');
 
 clear numMovies
 
