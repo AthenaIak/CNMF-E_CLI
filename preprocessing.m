@@ -24,7 +24,7 @@ for m=1:numMovies
         
         %replace bad frames with weighted averages of previous and next
         %good frame.
-        %check if empty 
+        %make sure it is not empty 
         if ~isempty(badFrames{m}{f})
             for badSet=1:size(badFrames{m}{f},1)
                 prevFrame = badFrames{m}{f}{badSet}(1) - 1;
@@ -70,13 +70,17 @@ for m=1:numMovies
     clear vals badSet f numFr;
     
     %now calculate the change resulting from downsampling
-    replacedInUse = replaced(mod(replaced,down_factor)==1);
-    newIdxs = floor(replacedInUse/down_factor)+1;
-    clear replaced replacedInUse;
+    if exist('replacedInUse','var') && (~isempty(replacedInUse))
+        replacedInUse = replaced(mod(replaced,down_factor)==1);
+        newIdxs = floor(replacedInUse/down_factor)+1;
+        clear replaced replacedInUse;
     
-    disp('Indexes of frames with artificial data:');
-    disp(newIdxs);
-    
+        disp('Indexes of frames with artificial data:');
+        disp(newIdxs);
+    else
+	disp('No frames were replaced in any file.');    
+    end
+
     %save as tiff
     [~,rec_nam,~] = fileparts(movieFiles{m}{1});
     curr_id=1;
