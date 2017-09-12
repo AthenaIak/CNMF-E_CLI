@@ -24,6 +24,10 @@ for m=1:numMovies
         
         %replace bad frames with weighted averages of previous and next
         %good frame.
+        %TODO: check if empty first
+        %
+        %
+        %
         for badSet=1:size(badFrames{m}{f},1)
             prevFrame = badFrames{m}{f}{badSet}(1) - 1;
             nextFrame = badFrames{m}{f}{badSet}(end) + 1;
