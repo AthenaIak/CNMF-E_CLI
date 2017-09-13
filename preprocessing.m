@@ -94,7 +94,7 @@ for m=1:numMovies
             'WriteMode', 'append', 'Compression','none');
         
         if mod(img,250)==0
-            fprintf('%d/%d frames saved', img, numFrames);
+            fprintf('%d/%d frames saved\n', img, numFrames);
         end
     end
     
