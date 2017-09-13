@@ -37,7 +37,7 @@ neuron_raw = Sources2D('d1',d1,'d2',d2,... % dimensions of datasets
 neuron_raw.Fs = fs;         % frame rate
 neuron_raw.kernel = kernel; % convolution kernel
 
-clear fs gSig gSiz ddist search_method bas_nonneg;
+clear fs gSig gSiz ddist search_method bas_nonneg merge_thr;
 clear ssub tsub tau_decay tau_rise nframe_decay bound_pars kernel;
 
 %% downsample data for fast and better initialization
@@ -130,7 +130,7 @@ for miter=1:maxIter
     %% merge neurons, order neurons and delete some low quality neurons
     
     % merge neurons
-    neuron.quickMerge(merge_thr);  % merge neurons based on the correlation computed with {'A', 'S', 'C'}
+    neuron.quickMerge(merge_thr_all);  % merge neurons based on the correlation computed with {'A', 'S', 'C'}
     % A: spatial shapes; S: spike counts; C: calcium traces
 
     % sort neurons
@@ -155,7 +155,7 @@ for miter=1:maxIter
     for m=1:5    
         %temporal
         neuron.updateTemporal_endoscope(Ysignal, smin);
-        [merged_ROI, ~] = neuron.quickMerge(merge_thr); 
+        [merged_ROI, ~] = neuron.quickMerge(merge_thr_all); 
         
         % sort neurons
         [~, srt] = sort(max(neuron.C, [], 2).*max(neuron.A, [], 1)', 'descend');
