@@ -11,20 +11,12 @@ clear CNMF_dir;
 run (set_parameters);
 clear set_parameters;
 
-% load the data
-%data = loadRawData(filename);
-[~,~,ext] = fileparts(filename);
-
-if strcmp(ext,'.tif')
-    nam_mat = tif2mat(filename);
-elseif strcmp(ext,'.mat')
-    nam_mat = filename;
-else
-    disp('Unsupported format: only .tif and .mat files allowed');
-    exit(1);
+% load the motion corrected movies
+filename = fullfile(inDir, mat_nam);
+if ~exist(filename,'file')
+    tif2matMulti(fullfile(inDir,movieFiles), filename);
 end
-data = matfile(nam_mat);
-clear ext num_mat;
+data = matfile(filename);
 
 Ysiz = data.Ysiz;
 d1 = Ysiz(1);   %height
@@ -38,14 +30,14 @@ neuron_raw = Sources2D('d1',d1,'d2',d2,... % dimensions of datasets
     'gSig', gSig,...    %width of the gaussian kernel, which can approximates the average neuron shape
     'gSiz', gSiz, ...   % maximum diameter of neurons in the image plane. larger values are preferred. 
     'dist', ddist, ...  % maximum size of the neuron: dist*gSiz
-    'search_method', search_method, ...     % searching method (neuron body vs. dendrites)
+    'search_method', search_method, ... % searching method (neuron body vs. dendrites)
     'merge_thr', merge_thr, ... % threshold for merging neurons
     'bas_nonneg', bas_nonneg);  % 1: positive baseline of each calcium traces; 0: any baseline
 
 neuron_raw.Fs = fs;         % frame rate
 neuron_raw.kernel = kernel; % convolution kernel
 
-clear fs gSig gSiz ddist search_method merge_thr bas_nonneg;
+clear fs gSig gSiz ddist search_method bas_nonneg;
 clear ssub tsub tau_decay tau_rise nframe_decay bound_pars kernel;
 
 %% downsample data for fast and better initialization

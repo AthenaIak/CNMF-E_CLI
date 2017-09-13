@@ -82,18 +82,23 @@ for m=1:numMovies
     end
 
     %save as tiff
+    disp('Saving movie...');
     [~,rec_nam,~] = fileparts(movieFiles{m}{1});
-    curr_id=1;
-    for img=1:min(size(downY,3))
+    curr_id=1; numFrames = size(downY,3);
+    for img=1:numFrames
         if mod(img,TIFF_MAX_FRAMES)==1
             outputFileName = fullfile(outDir,sprintf('pp_%s-%d.tif',rec_nam,curr_id));
             curr_id = curr_id+1;
         end
         imwrite(downY(:, :, img), outputFileName, ...
             'WriteMode', 'append', 'Compression','none');
+        
+        if mod(img,250)==0
+            fprintf('%d/%d frames saved', img, numFrames);
+        end
     end
     
-    fprintf('Done writing movie %d',m);    
+    fprintf('Done saving movie %d\n',m);    
    
 end
 
