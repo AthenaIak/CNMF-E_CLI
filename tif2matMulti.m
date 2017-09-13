@@ -44,7 +44,7 @@ numFiles = length(movieFiles);
 for m=1:numFiles
     fprintf('Loading file %d/%d...\n', m,numFiles);
     Y = bigread2(movieFiles{m}); 
-    Y = Y(bd:end-bd,bd:end-bd,:);
+    Y = Y(bd+1:end-bd,bd+1:end-bd,:);
     num_frames = size(Y,3);
     
     disp('Saving file...');
