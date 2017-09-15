@@ -19,13 +19,15 @@ elseif isempty(active_pixel)
 else
     active_pixel = logical(active_pixel);
 end;     %determine nonzero pixels
-ind_fit = find(sum(active_pixel,2)>1e-9);
 
 %% initialization
-Y = bsxfun(@minus, Y, mean(Y,2)); 
+Ymean = mean(Y,2); 
+Y = bsxfun(@minus, Y, Ymean); 
 C = bsxfun(@minus, C, mean(C,2)); 
 CC = C*C';
 YC = C*Y';
+ind_fit = find(sum(active_pixel,2)>1e-9);
+A = zeros(size(A)); 
 
 %% updating
 for m=1:length(ind_fit)

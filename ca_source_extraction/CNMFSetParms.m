@@ -98,6 +98,11 @@ Names = [
     'seed_method        '    
     'min_pixel          ' % minimum number of nonzero pixels for a neuron 
     'bd                 ' % number of pixels to be ignored in the boundary 
+    'deconv_flag        ' % perform deconvolution or not 
+    'deconv_options     ' % options for running deconvolution 
+    'smin               ' % mimimum spike size
+    'center_psf         ' % center psf or not 
+    'gaussian_shape     ' % neurons have 2D gaussian shapes. 
     ];
 
 [m,n] = size(Names);
@@ -268,6 +273,11 @@ Values = [
     {'auto'}
     {5}
     {3}
+    {true}
+    {[]}
+    {5}
+    {true}
+    {true}
     ];
 
 for j = 1:m

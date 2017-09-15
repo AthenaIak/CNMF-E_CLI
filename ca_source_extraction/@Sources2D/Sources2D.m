@@ -30,7 +30,7 @@ classdef Sources2D < handle
         %% constructor and options setting
         function obj = Sources2D(varargin)
             obj.options = CNMFSetParms();
-            obj.P = struct('p', 2);
+            obj.P = struct('p', 2, 'sn', []);
             if nargin>0
                 obj.options = CNMFSetParms(obj.options, varargin{:});
             end
@@ -56,6 +56,7 @@ classdef Sources2D < handle
         %% fast initialization for microendoscopic data
         [center, Cn, pnr] = initComponents_endoscope(obj, Y, K, patch_sz, debug_on, save_avi);
         
+        [center] = initComponents_2p(obj,Y, K, options, sn, debug_on, save_avi);
         %% update spatial components
         function updateSpatial(obj, Y)
             [obj.A, obj.b, obj.C] = update_spatial_components(Y, ...
@@ -67,9 +68,14 @@ classdef Sources2D < handle
             [obj.A, obj.C] = update_spatial_components_nb(Y, ...
                 obj.C, obj.A, obj.P, obj.options);
         end
+        %% udpate spatial components using NNLS and thresholding
+        function updateSpatial_nnls(obj, Y)
+            [obj.A, obj.C] = update_spatial_nnls(Y, ...
+                obj.C, obj.A, obj.P, obj.options);
+        end
         
         %% update temporal components for endoscope data
-        updateSpatial_endoscope(obj, Y, numIter);
+        updateSpatial_endoscope(obj, Y, numIter, method, IND_thresh);
         
         %% update temporal components
         function updateTemporal(obj, Y)
@@ -78,7 +84,8 @@ classdef Sources2D < handle
         end
         
         %% udpate temporal components with fast deconvolution
-        updateTemporal_endoscope(obj, Y, smin)
+        updateTemporal_endoscope(obj, Y, allow_deletion)
+        updateTemporal_endoscope_parallel(obj, Y, smin)
         
         %% update temporal components without background
         function updateTemporal_nb(obj, Y)
@@ -126,16 +133,76 @@ classdef Sources2D < handle
             
         end
         
+        %% extract DF/F signal for microendoscopic data
+        function [C_df,C_raw_df, Df] = extract_DF_F_endoscope(obj, Ybg)
+            options_ = obj.options;
+            A_ = obj.A;
+            C_ = obj.C;
+            [K,T] = size(obj.C);  % number of frames
+            Ybg = bsxfun(@times, A_, 1./sum(A_.^2, 1))' * Ybg;   % estimate the background for each neurons
+            if isempty(options_.df_window) || (options_.df_window > T)
+                % use quantiles of the whole recording session as the
+                % baseline
+                if options_.df_prctile == 50
+                    Df = median(Ybg,2);
+                else
+                    Df = prctile(Ybg,options_.df_prctile,2);
+                end
+                C_df = spdiags(Df,0,K,K)\C_;
+                C_raw_df = spdiags(Df,0,K,K)\obj.C_raw;
+            else
+                % estimate the baseline for each short period
+                if options_.df_prctile == 50
+                    Df = medfilt1(Ybg,options_.df_window,[],2,'truncate');
+                else
+                    Df = zeros(size(Ybg));
+                    for i = 1:size(Df,1);
+                        df_temp = running_percentile(Ybg(i,:), options_.df_window, options_.df_prctile);
+                        Df(i,:) = df_temp(:)';
+                    end
+                end
+                C_df = C_./Df;
+                C_raw_df = obj.C_raw./Df;
+            end
+        end
+        
         %% order_ROIs
         function [srt] = orderROIs(obj, srt)
             %% order neurons
             % srt: sorting order
             nA = sqrt(sum(obj.A.^2));
             nr = length(nA);
-            if nargin<2; srt=[]; end
+            if nargin<2
+                srt=[];
+            elseif ischar(srt)
+                if strcmpi(srt, 'snr')
+                    snrs = var(obj.C, 0, 2)./var(obj.C_raw-obj.C, 0, 2);
+                    [~, srt] = sort(snrs, 'descend');
+                elseif strcmpi(srt, 'decay_time')
+                    % time constant
+                    K = size(obj.C, 1);
+                    if K<0
+                        disp('Are you kidding? You extracted 0 neurons!');
+                        return;
+                    else
+                        taud = zeros(K, 1);
+                        for m=1:K
+                            temp = ar2exp(obj.P.kernel_pars(m));
+                            taud(m) = temp(1);
+                        end
+                        [~, srt] = sort(taud);
+                    end
+                elseif strcmp(srt, 'mean')
+                    [~, srt] = sort(mean(obj.C,2), 'descend'); 
+                else
+                    srt = [];
+                end
+            end
             [obj.A, obj.C, obj.S, obj.P, srt] = order_ROIs(obj.A, obj.C,...
                 obj.S, obj.P, srt);
-            
+            try
+                obj.P.kernel_pars = obj.P.kernel_pars(srt, :);
+            end
             if ~isempty(obj.C_raw)
                 if isempty(srt)
                     obj.C_raw = spdiags(nA(:),0,nr,nr)*obj.C_raw;
@@ -200,6 +267,9 @@ classdef Sources2D < handle
         %% quick merge neurons based on spatial and temporal correlation
         [merged_ROIs, newIDs] = quickMerge(obj, merge_thr)
         
+        %% quick merge neurons based on spatial and temporal correlation
+        [merged_ROIs, newIDs] = MergeNeighbors(obj, dmin, method)
+        
         
         %% quick view
         viewNeurons(obj, ind, C2, folder_nm);
@@ -209,10 +279,14 @@ classdef Sources2D < handle
         function delete(obj, ind)
             obj.A(:, ind) = [];
             obj.C(ind, :) = [];
-            if ~isempty(obj.S); obj.S(ind, :) = []; end
-            if ~isempty(obj.C_raw); obj.C_raw(ind, :) = []; end
-            if and(isfield(obj.P, 'kernel_pars'),  ~isempty(obj.P.kernel_pars))
-                obj.P.kernel_pars(ind, :) = [];
+            if ~isempty(obj.S);
+                try obj.S(ind, :) = []; catch; end
+            end
+            if ~isempty(obj.C_raw)
+                try obj.C_raw(ind, :) = []; catch;  end
+            end
+            if isfield(obj.P, 'kernel_pars')&&(  ~isempty(obj.P.kernel_pars))
+                try obj.P.kernel_pars(ind, :) = []; catch; end
             end
         end
         
@@ -243,9 +317,27 @@ classdef Sources2D < handle
         end
         
         %% deconvolve all temporal components
-        function C0 = deconvTemporal(obj)
-            C0 = obj.C;
-            [obj.C, obj.P, obj.S] = deconv_temporal(obj.C, obj.P, obj.options);
+        function C_ = deconvTemporal(obj)
+            C_raw_ = obj.C_raw;
+            K = size(C_raw_, 1);
+            C_ = zeros(size(C_raw_));
+            S_ = C_;
+            kernel_pars = cell(K, 1);
+            for m=1:K
+                fprintf('|');
+            end
+            fprintf('\n');
+            for m=1:size(C_raw_,1)
+                [b_, sn] = estimate_baseline_noise(C_raw_(m, :));
+                [C_(m, :), S_(m,:), temp_options] = deconvolveCa(C_raw_(m, :)-b_, obj.options.deconv_options);
+                kernel_pars{m} = temp_options.pars;
+                obj.C_raw(m, :) = obj.C_raw(m, :)-b_;
+                fprintf('.');
+            end
+            fprintf('\n');
+            obj.C = C_;
+            obj.S = S_;
+            obj.P.kernel_pars = kernel_pars;
         end
         
         %% update background
@@ -299,13 +391,22 @@ classdef Sources2D < handle
         end
         %% play movie
         function playMovie(obj, Y, min_max, col_map, avi_nm, t_pause)
+            d1 = obj.options.d1;
+            d2 = obj.options.d2;
             % play movies
-            figure;
+            figure('papersize', [d2,d1]/max(d1,d2)*5);
+            width = d2/max(d1,d2)*500;
+            height =d1/max(d1,d2)*500;
+            set(gcf, 'position', [500, 200, width, height]);
+            axes('position', [0,0, 1, 1]);
             if ~exist('col_map', 'var') || isempty(col_map)
                 col_map = jet;
             end
             if exist('avi_nm', 'var') && ischar(avi_nm)
                 avi_file = VideoWriter(avi_nm);
+                if ~isnan(obj.Fs)
+                    avi_file.FrameRate = obj.Fs;
+                end
                 avi_file.open();
                 avi_flag = true;
             else
@@ -322,12 +423,16 @@ classdef Sources2D < handle
             if ~exist('t_pause', 'var'); t_pause=0.01; end
             for t=1:size(Y,3)
                 imagesc(Y(:, :, t), min_max); colormap(col_map);
-                axis equal; axis off;
-                title(sprintf('Frame %d', t));
+                axis equal; axis off tight;
+                if isnan(obj.Fs)
+                    title(sprintf('Frame %d', t));
+                else
+                    text(1, 10, sprintf('Time = %.2f', t/obj.Fs), 'fontsize', 15, 'color', 'w');
+                end
                 pause(t_pause);
                 if avi_flag
                     temp = getframe(gcf);
-                    temp.cdata = imresize(temp.cdata, [420,560]);
+                    temp.cdata = imresize(temp.cdata, [width, height]);
                     avi_file.writeVideo(temp);
                 end
             end
@@ -373,28 +478,45 @@ classdef Sources2D < handle
         end
         
         %% trim spatial components
-        function [ind_small] = trimSpatial(obj, thr)
+        function [ind_small] = trimSpatial(obj, thr, sz)
             % remove small nonzero pixels
             if nargin<2;    thr = 0.01; end;
+            if nargin<3;    sz = 5; end;
             
-            ind_small = false(size(obj.A, 2), 1); 
+            se = strel('square', sz);
+            ind_small = false(size(obj.A, 2), 1);
             for m=1:size(obj.A,2)
-                ai = obj.A(:, m); 
-                temp = full(ai>max(ai)*thr);
+                ai = obj.A(:,m);
+                ai_open = imopen(obj.reshape(ai,2), se);
+                
+                temp = full(ai_open>max(ai)*thr);
                 l = bwlabel(obj.reshape(temp,2), 4);   % remove disconnected components
+                [~, ind_max] = max(ai_open(:));
                 
-                [tmp_count, tmp_l] = hist(l(l>0), unique(l(l>0))); 
-                [~, ind] = max(tmp_count); 
-                lmax = tmp_l(ind); 
-                
-                ai(l(:)~=lmax) = 0;
+                ai(l(:)~=l(ind_max)) = 0;
                 if sum(ai(:)>0) < obj.options.min_pixel %the ROI is too small
-                    ind_small(m) = true; 
+                    ind_small(m) = true;
                 end
-                obj.A(:, m) = ai(:); 
+                obj.A(:, m) = ai(:);
             end
-            ind_small = find(ind_small); 
+            ind_small = find(ind_small);
             obj.delete(ind_small);
+        end
+        
+        %% keep spatial shapes compact
+        function compactSpatial(obj)
+            ind_del = false(1, size(obj.A,2));
+            for m=1:size(obj.A, 2)
+                ai = obj.reshape(obj.A(:, m), 2);
+                ai = spatial_constraints(ai);
+                if sum(ai(:))>0
+                    obj.A(:, m) = ai(:);
+                else
+                    ind_del(m) = true;
+                end
+            end
+            obj.delete(ind_del);
+            obj.delete(sum(obj.A>0, 1)<=obj.options.min_pixel);
         end
         
         %% solve A & C with regression
@@ -473,7 +595,7 @@ classdef Sources2D < handle
             if ~exist('save_avi', 'var')||isempty(save_avi); save_avi=false; end
             if ~exist('avi_name', 'var'); avi_name = []; end
             if ~exist('S', 'var');  S = []; end
-            run_movie(Y, obj.A, obj.C, obj.Cn, min_max, obj.Coor, ctr, 5, 1, save_avi, avi_name, S)
+            run_movie(Y, obj.A, obj.C_raw, obj.Cn, min_max, obj.Coor, ctr, 5, 1, save_avi, avi_name, S)
         end
         
         %% function
@@ -506,6 +628,14 @@ classdef Sources2D < handle
             elseif strcmpi(file_type, '.tif') || strcmpi(file_type, '.tiff')
                 numFrame = length(imfinfo(nam));
                 img = imread(nam);
+            elseif strcmpi(file_type, '.h5') || strcmpi(file_type, '.hdf5')
+                temp = h5info(nam);
+                dataset_nam = ['/', temp.Datasets.Name];
+                dataset_info = h5info(nam, dataset_nam);
+                dims = dataset_info.Dataspace.Size;
+                ndims = length(dims);
+                numFrame = dims(end);
+                img = squeeze(h5read(nam, dataset_nam, ones(1, ndims), [1,d1, d2, 1, 1]));
             end
             num2read = min(num2read, numFrame-sframe+1); % frames to read
             
@@ -515,6 +645,8 @@ classdef Sources2D < handle
                     Yraw = data.Y(:, :, (1:num2read)+sframe-1);
                 elseif strcmpi(file_type, '.tif') || strcmpi(file_type, '.tiff')
                     Yraw = bigread2(nam, sframe, num2read);
+                elseif strcmpi(file_type, '.h5') || strcmpi(file_type, 'hdf5')
+                    Yraw = squeeze(h5read(nam, dataset_nam, ones(1, ndims), [1, d1, d2, 1, num2read]));
                 else
                     fprintf('\nThe input file format is not supported yet\n\n');
                     return;
@@ -533,7 +665,11 @@ classdef Sources2D < handle
                         fprintf('load data from frame %d to frame %d of %d total frames\n', sframe, sframe+tmp_num2read-1, lastframe);
                         Yraw = data.Y(:, :, sframe:(sframe+tmp_num2read-1));
                     elseif strcmpi(file_type, '.tif') || strcmpi(file_type, '.tiff')
+                        fprintf('load data from frame %d to frame %d of %d total frames\n', sframe, sframe+tmp_num2read-1, lastframe);
                         Yraw = bigread2(nam, sframe, tmp_num2read);
+                    elseif strcmpi(file_type, '.h5') || strcmpi(file_type, 'hdf5')
+                        fprintf('load data from frame %d to frame %d of %d total frames\n', sframe, sframe+tmp_num2read-1, lastframe);
+                        Yraw = squeeze(h5read(nam, dataset_nam, [1,1,1,1,sframe], [1, d1, d2, 1, tmp_num2read]));
                     else
                         fprintf('\nThe input file format is not supported yet\n\n');
                         return;
@@ -555,7 +691,7 @@ classdef Sources2D < handle
             fprintf('  done \n');
         end
         %% merge neurons
-        function img = overlapA(obj, ind, ratio)
+        function [img, col0, AA] = overlapA(obj, ind, ratio)
             %merge all neurons' spatial components into one singal image
             if nargin<2 || isempty(ind)
                 AA = obj.A;
@@ -565,15 +701,25 @@ classdef Sources2D < handle
             if nargin<3
                 ratio = 0.3;
             end
-            AA = bsxfun(@times, AA, 1./max(AA,1));
+            
+            %             v_max = max(max(AA,1));
+            v_max = 1;
+            AA = bsxfun(@times, AA, v_max./max(AA,[],1));
             AA(bsxfun(@lt, AA, max(AA, [], 1)*ratio)) = 0;
             [d, K] = size(AA);
             
-            col = randi(6, 1, K);
+            if K==2
+                col = [4, 2];
+            elseif K==3
+                col = [4, 2, 1];
+            else
+                col = randi(6, 1, K);
+            end
+            col0 = col;
             img = zeros(d, 3);
-            for m=1:3
+            for m=3:-1:1
                 img(:, m) = sum(bsxfun(@times, AA, mod(col, 2)), 2);
-                col = round(col/2);
+                col = floor(col/2);
             end
             img = obj.reshape(img, 2);
             img = img/max(img(:))*(2^16);
@@ -581,36 +727,44 @@ classdef Sources2D < handle
         end
         
         %% play video
-        function playAC(obj, avi_file, cell_id)
-            if nargin<3
+        function playAC(obj, avi_file, cell_id, indt)
+            if nargin<3 || isempty(cell_id)
                 cell_id = 1:size(obj.C, 1);
             end
             [K, T] = size(obj.C(cell_id, :));
+            if ~exist('indt', 'var')
+                indt = [1, T];
+            end
             % draw random color for each neuron
             tmp = mod((1:K)', 6)+1;
             col = zeros(K, 3);
             for m=1:3
                 col(:, m) = mod(tmp, 2);
-                tmp = round(tmp/2);
+                tmp = floor(tmp/2);
             end
             figure;
+            height = obj.options.d1*512/obj.options.d2;
+            set(gcf, 'position', [675, 524, 512, height]);
+            axes('position', [0,0,1,1]);
             % play
             if nargin>1
                 fp = VideoWriter(avi_file);
+                fp.FrameRate = obj.Fs;
                 fp.open();
             end
             
-            cmax = max(reshape(obj.A*obj.C(:, 1:100:end), 1, []));
-            for m=1:T
+            cmax = max(reshape(obj.A*obj.C, 1, []));
+            for m=indt(1):indt(2)
                 img = obj.A(:, cell_id)*bsxfun(@times, obj.C(cell_id,m), col);
-                img = obj.reshape(img, 2)/cmax*500;
+                img = obj.reshape(img, 2)/cmax*1000;
                 imagesc(uint8(img));
                 axis equal off tight;
-                title(sprintf('Time %.2f seconds', m/obj.Fs));
-                
-                pause(.1);
-                if nargin>1
+                text(5, 10, sprintf('Time: %.2f seconds',(m-indt(1))/obj.Fs), 'color', 'w',...
+                    'fontsize', 16);
+                pause(.01);
+                if exist('fp', 'var')
                     frame = getframe(gcf);
+                    frame.cdata = imresize(frame.cdata, [512, height]);
                     fp.writeVideo(frame);
                 end
             end
@@ -619,21 +773,28 @@ classdef Sources2D < handle
         
         %% find neurons from the residual
         % you can do it in either manual or automatic way
-        function [center, Cn, pnr] = pickNeurons(obj, Y, patch_par, seed_method)
+        function [center, Cn, pnr] = pickNeurons(obj, Y, patch_par, seed_method, debug_on)
             if ~exist('patch_par', 'var')||isempty(patch_par)
-                seed_method = [3,3];
+                patch_par = [3,3];
             end
             if ~exist('seed_method', 'var')||isempty(seed_method)
                 seed_method = 'auto';
             end
+            if ~exist('debug_on', 'var')||isempty(debug_on)
+                debug_on = false; 
+            end 
             neuron = obj.copy();
             neuron.options.seed_method = seed_method;
-            [center, Cn, pnr] = neuron.initComponents_endoscope(Y, [], patch_par, false, false);
+            neuron.options.gSig = 1;
+            neuron.options.center_psf = 0;
+            [center, Cn, pnr] = neuron.initComponents_endoscope(Y, [], patch_par, debug_on, false);
             obj.A = [obj.A, neuron.A];
             obj.C = [obj.C; neuron.C];
-            obj.S = [obj.S; neuron.S];
             obj.C_raw = [obj.C_raw; neuron.C_raw];
-            obj.P.kernel_pars = [obj.P.kernel_pars; neuron.P.kernel_pars];
+            if obj.options.deconv_flag
+                obj.S = [obj.S; neuron.S];
+                obj.P.kernel_pars = [obj.P.kernel_pars; neuron.P.kernel_pars];
+            end
         end
         
         %% post process spatial component
@@ -678,6 +839,30 @@ classdef Sources2D < handle
             fprintf('results has been saved into file %s\n', file_nm);
         end
         
+        %% reconstruct background signal given the weights
+        function Ybg = reconstructBG(obj, Y, weights)
+            if ~exist('weights', 'var')||isempty(weights)
+                try
+                    weights = obj.P.weights;
+                catch
+                    Ybg = [];
+                    disp('no regression weights given');
+                end
+            end
+            Y = obj.reshape(Y-obj.A*obj.C, 2);
+            [d1,d2, ~] = size(Y);
+            dims = weights.dims;
+            b0 = mean(Y,3);
+            Y = bsxfun(@minus, Y, b0);
+            Y = imresize(Y, dims);
+            Y = reshape(Y, [], size(Y,3));
+            Ybg = zeros(size(Y));
+            parfor m=1:size(Y,1)
+                w = weights.weights{m};
+                Ybg(m,:) = w(2,:)*Y(w(1,:),:);
+            end
+            Ybg = bsxfun(@plus, imresize(Ybg, [d1,d2]), b0);
+        end
         %% event detection
         function E = event_detection(obj, sig, w)
             % detect events by thresholding S with sig*noise
@@ -700,7 +885,7 @@ classdef Sources2D < handle
             end
         end
         
-        % compute correlation image and peak to noise ratio for endoscopic
+        %% compute correlation image and peak to noise ratio for endoscopic
         % data. unlike the correlation image for two-photon data,
         % correlation image of the microendoscopic data needs to be
         % spatially filtered first. otherwise neurons are significantly
@@ -711,6 +896,7 @@ classdef Sources2D < handle
             %             obj.PNR = PNR;
         end
         
+        %% convert struct data to Sources2D object
         function obj = struct2obj(obj, var_struct)
             temp = fieldnames(var_struct);
             for m=1:length(temp)
@@ -720,6 +906,19 @@ classdef Sources2D < handle
             end
         end
         
+        %% convert Sources2D object to a struct variable 
+        function neuron = obj2struct(obj)
+            neuron.A = obj.A; 
+            neuron.C = obj.C; 
+            neuron.C_raw = obj.C_raw; 
+            neuron.S = obj.S; 
+            neuron.options = obj.options; 
+            neuron.P = obj.P; 
+            neuron.b = obj.b; 
+            neuron.f = obj.f; 
+        end
+               
+        %% get contours of the all neurons
         function Coor = get_contours(obj, thr, ind)
             A_ = obj.A;
             if exist('ind', 'var')
@@ -737,37 +936,111 @@ classdef Sources2D < handle
             end
             for m=1:num_neuron
                 % smooth the image with median filter
-                img = medfilt2(obj.reshape(full(A_(:, m)),2), [3, 3]);
+                A_temp = medfilt2(obj.reshape(full(A_(:, m)),2), [3, 3]);
                 % find the threshold for detecting nonzero pixels
-                temp = sort(img(img>1e-9));
-                temp_sum = cumsum(temp);
-                ind = find(temp_sum>=temp_sum(end)*(1-thr),1);
-                v_thr = temp(ind);
                 
-                % find the connected components
-                [~, ind_max] = max(img(:));
-                temp = bwlabel(img>v_thr);
-                img = double(temp==temp(ind_max));
-                v_nonzero = imfilter(img, [0,-1/4,0;-1/4,1,-1/4; 0,-1/4,0]);
-                vv = v_nonzero(v_nonzero>1e-9)';
-                [y, x] = find(v_nonzero>1e-9);
-                xmx = bsxfun(@minus, x, x');
-                ymy = bsxfun(@minus, y, y');
-                dist_pair = xmx.^2 + ymy.^2;
-                dist_pair(diag(true(length(x),1))) = inf;
-                seq = ones(length(x)+1,1);
-                for mm=1:length(x)-1
-                    [v_min, seq(mm+1)] = min(dist_pair(seq(mm), :)+vv);
-                    dist_pair(:,seq(mm)) = inf;
-                    if v_min>3
-                        seq(mm+1) = 1;
-                        break;
-                    end
+                A_temp = A_temp(:);
+                [temp,ind] = sort(A_temp(:).^2,'ascend');
+                temp =  cumsum(temp);
+                ff = find(temp > (1-thr)*temp(end),1,'first');
+                if ~isempty(ff)
+                    pvpairs = { 'LevelList' , [0,0]+A_temp(ind(ff)), 'ZData', obj.reshape(A_temp,2)};
+                    h = matlab.graphics.chart.primitive.Contour(pvpairs{:});
+                    temp = h.ContourMatrix;
+                    temp = medfilt1(temp')';
+                    Coor{m} = temp(:, 3:end);
                 end
-                Coor{m} = [smooth(x(seq), 2)'; smooth(y(seq),2)'];
+                
             end
-            
         end
+        
+        %% manually draw ROI and show the mean fluorescence traces within the ROI
+        function y = drawROI(obj, Y, img, type)
+            Y = obj.reshape(Y,1);
+            if ~exist('img', 'var') || isempty(img)
+                img = mean(Y, 2);
+            end
+            if ~exist('type', 'var') || isempty(img)
+                type = 'ROI';
+            end
+            d1 = obj.options.d1;
+            d2 = obj.options.d2;
+            figure;
+            while true
+                if d1>d2
+                    subplot(131);
+                else
+                    subplot(311);
+                end
+                obj.image(img);
+                if strcmpi(type, 'roi')
+                    temp = imfreehand();
+                    ind = temp.createMask();
+                else
+                    [c, r] = ginput(1);
+                    ind = sub2ind([d1,d2], round(r), round(c));
+                end
+                y = mean(Y(ind(:), :), 1);
+                if d1>d2
+                    subplot(1,3,2:3);
+                else
+                    subplot(3,1,2:3);
+                end
+                plot(y);
+            end
+        end
+        %         function Coor = get_contours(obj, thr, ind)
+        %             A_ = obj.A;
+        %             if exist('ind', 'var')
+        %                 A_ = A_(:, ind);
+        %             end
+        %             if ~exist('thr', 'var') || isempty(thr)
+        %                 thr = 0.995;
+        %             end
+        %             num_neuron = size(A_,2);
+        %             if num_neuron==0
+        %                 Coor ={};
+        %                 return;
+        %             else
+        %                 Coor = cell(num_neuron,1);
+        %             end
+        %             for m=1:num_neuron
+        %                 % smooth the image with median filter
+        %                 img = medfilt2(obj.reshape(full(A_(:, m)),2), [3, 3]);
+        %                 % find the threshold for detecting nonzero pixels
+        %                 temp = sort(img(img>1e-9));
+        %                 if ~any(temp)
+        %                     Coor{m} = [];
+        %                     continue;
+        %                 end
+        %                 temp_sum = cumsum(temp);
+        %                 ind = find(temp_sum>=temp_sum(end)*(1-thr),1);
+        %                 v_thr = temp(ind);
+        %
+        %                 % find the connected components
+        %                 [~, ind_max] = max(img(:));
+        %                 temp = bwlabel(img>v_thr);
+        %                 img = double(temp==temp(ind_max));
+        %                 v_nonzero = imfilter(img, [0,-1/4,0;-1/4,1,-1/4; 0,-1/4,0]);
+        %                 vv = v_nonzero(v_nonzero>1e-9)';
+        %                 [y, x] = find(v_nonzero>1e-9);
+        %                 xmx = bsxfun(@minus, x, x');
+        %                 ymy = bsxfun(@minus, y, y');
+        %                 dist_pair = xmx.^2 + ymy.^2;
+        %                 dist_pair(diag(true(length(x),1))) = inf;
+        %                 seq = ones(length(x)+1,1);
+        %                 for mm=1:length(x)-1
+        %                     [v_min, seq(mm+1)] = min(dist_pair(seq(mm), :)+vv);
+        %                     dist_pair(:,seq(mm)) = inf;
+        %                     if v_min>3
+        %                         seq(mm+1) = 1;
+        %                         break;
+        %                     end
+        %                 end
+        %                 Coor{m} = [smooth(x(seq), 2)'; smooth(y(seq),2)'];
+        %             end
+        %
+        %         end
     end
     
 end
