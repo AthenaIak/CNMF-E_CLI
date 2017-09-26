@@ -6,16 +6,6 @@ function ind_cell=run_movie(Y, A, C, Cn, min_max, Coor, ctr,  Ncell, tskip, save
 
 %% Author: Pengcheng Zhou, Carnegie Mellon University, 2016
 %% parameters
-
-%-- Colors for movie (RU)
-cmap = 'jet';
-colors = [139, 131, 134;
-          137, 104, 205;
-          122, 197, 205;
-          78, 238, 148;
-          255, 140, 0] / 255;
-%--
-
 [d1,d2] = size(Cn);
 if ismatrix(Y); Y=reshape(Y, d1, d2, []); T=size(Y, 3); else T=size(Y, ndims(Y)); end
 if ~exist('save_avi', 'var');    save_avi=false;
@@ -39,13 +29,12 @@ figure('position', [100, 500, 1800, 420]);
 % display correlation image for selecting neurons
 subplot(Ncell, ncol, 1:ncol:(ncol*Ncell));
 imagesc(Cn, [0, 1]);hold on;
-colormap(cmap)
 axis equal; axis off;
 ind_cell = zeros(Ncell,1);
 m = 1;
 while true
     subplot(Ncell, ncol, 1:ncol:(Ncell*ncol));
-    
+    drawnow; 
     [x, y] = ginput(1);
     h_dot = plot(x, y, '*m');
     dx = x-ctr(:, 2);
@@ -53,12 +42,12 @@ while true
     dist_xy = sqrt(dx.^2+dy.^2);
     [~, ind_cell(m)] = min(dist_xy);
     temp = Coor{ind_cell(m)};
-    h_con = plot(temp(1, 4:end), temp(2, 4:end), 'Color', colors(m, :), 'LineWidth', 2); %-- (RU) changed 'r' to colors(m, :)
-    h_txt = text(ctr(ind_cell(m), 2), ctr(ind_cell(m), 1), num2str(m), 'fontsize', 10);
+    h_con = plot(temp(1, 4:end), temp(2, 4:end), 'r');
+    h_txt = text(ctr(ind_cell(m), 2), ctr(ind_cell(m), 1), num2str(m), 'fontsize', 10, 'fontweight', 'bold');
     disp(ctr(ind_cell(m), :)); 
     subplot(Ncell, ncol, ncol*(m-1)+[2, ncol]);cla;
     ylabel(num2str(m));
-    plot(C(ind_cell(m), :), 'Color', colors(m, :), 'LineWidth', 2); hold on; %-- (RU) added colors(m, :)
+    plot(C(ind_cell(m), :)); hold on;
     ylabel(sprintf('ID %d', ind_cell(m))); 
     if (exist('S', 'var'))&&  (~isempty(S))
         tmp = find(S(ind_cell(m), :)>0);
@@ -91,18 +80,17 @@ if save_avi
 end
 % draw selected neurons' contours and latex them
 subplot(Ncell,ncol,1:ncol:(ncol*Ncell)); cla;  hold on; axis equal; axis off;
-
 for m=1:Ncell
     temp = Coor{ind_cell(m)};
-    plot(temp(1, 4:end), temp(2, 4:end), 'Color', colors(m, :), 'LineWidth', 2); %-- add colors(m, :) (RU)
-%-- (RU)     text(ctr(ind_cell(m), 2)+3, ctr(ind_cell(m), 1), num2str(m), 'fontsize', 10, 'color', 'g');
+    plot(temp(1, 4:end), temp(2, 4:end), 'r');
+    text(ctr(ind_cell(m), 2)+3*randn(1), ctr(ind_cell(m), 1)+3, num2str(m), 'fontsize', ...
+        15, 'fontweight', 'bold', 'color', 'g');
 end
 % play movie
 for t=1:tskip:T
     subplot(Ncell,ncol,1:ncol:(ncol*Ncell));
-    h_img = imagesc(Y(:, :, t), [0, 450]);  %%  %-- (RU) changed min_max to [0, 450]; add medfilt2
-    title('Denoised') %-- (RU)
-    colormap(cmap)
+    h_img = imagesc(Y(:, :, t), min_max);
+%     colormap gray;
     hold on; axis equal; axis off;
     set(gca, 'children', flipud(get(gca, 'children')));
     

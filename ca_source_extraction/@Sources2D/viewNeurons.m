@@ -14,11 +14,13 @@ function viewNeurons(obj, ind, C2, folder_nm)
 if ~exist('ind', 'var') || isempty(ind)
     % display all neurons if ind is not specified.
     ind = 1:size(obj.A, 2);
+elseif ind==-1 
+    ind = size(obj.A,2):-1:1; 
 end
 if ~exist('C2', 'var'); C2=[]; end
 
 if exist('folder_nm', 'var')&&(~isempty(folder_nm))
-    % create a folder to save resulted images
+    % create a folder to save images
     save_img = true;
     cur_cd = cd();
     if ~exist(folder_nm, 'dir'); mkdir(folder_nm);
@@ -32,6 +34,8 @@ end
 
 % obj.delete(sum(obj.A>0, 1)<max(obj.options.min_pixel, 1));
 
+Amask = (obj.A>0); 
+ind_trim = false(size(ind));    % indicator of trimming neurons 
 ind_del = false(size(ind));     % indicator of deleting neurons
 ctr = obj.estCenter();      %neuron's center
 gSiz = obj.options.gSiz;        % maximum size of a neuron
@@ -52,7 +56,7 @@ m=1;
 while and(m>=1, m<=length(ind))
     %% full-frame view
     subplot(221);
-    imagesc(reshape(obj.A(:, ind(m)), obj.options.d1, obj.options.d2));
+    obj.image(obj.A(:, ind(m)).*Amask(:, ind(m))); %
     axis equal; axis off;
     if ind_del(m)
         title(sprintf('Neuron %d', ind(m)), 'color', 'r');
@@ -61,7 +65,8 @@ while and(m>=1, m<=length(ind))
     end
     %% zoomed-in view
     subplot(222);
-    imagesc(reshape(obj.A(:, ind(m)), obj.options.d1, obj.options.d2));
+        obj.image(obj.A(:, ind(m)).*Amask(:, ind(m))); %
+%     imagesc(reshape(obj.A(:, ind(m)).*Amask(:,ind(m))), obj.options.d1, obj.options.d2));
     axis equal; axis off;
     x0 = ctr(ind(m), 2);
     y0 = ctr(ind(m), 1);
@@ -78,14 +83,16 @@ while and(m>=1, m<=length(ind))
         
         plot(t, obj.C(ind(m), :)*max(obj.A(:, ind(m))));
     end
+    xlim([t(1), t(end)]); 
     xlabel(str_xlabel);
     
     %% save images
     if save_img
-        saveas(gcf, sprintf('neuron_%03d.png', ind(m)));
+        saveas(gcf, sprintf('neuron_%d.png', ind(m)));
         m = m+1;
     else
-        fprintf('Neuron %d, keep(k, default)/delete(d)/split(s)/trim(t)/delete all(da)/backward(b)/end(e):    ', ind(m));
+        fprintf('Neuron %d, keep(k, default)/delete(d)/split(s)/trim(t)/trim cancel(tc)/delete all(da)/backward(b)/end(e):    ', ind(m));
+
         temp = input('', 's');
         if temp=='d'
             ind_del(m) = true;
@@ -111,19 +118,26 @@ while and(m>=1, m<=length(ind))
                 obj.C_raw(end+1, :) = obj.C_raw(ind(m), :);
                 obj.P.kernel_pars(end+1, :) = obj.P.kernel_pars(ind(m), :);
             catch
-                sprintf('the neuron was not split\n');
+                fprintf('the neuron was not split\n');
             end
         elseif strcmpi(temp, 't')
             try
                 subplot(222);
                 temp = imfreehand();
                 tmp_ind = temp.createMask();
-                obj.A(:, ind(m)) = obj.A(:, ind(m)).*tmp_ind(:);
+                Amask(:, ind(m)) = tmp_ind(:);
+                ind_trim(m) = true; 
             catch
-                sprintf('the neuron was not trimmed\n');
+                fprintf('the neuron was not trimmed\n');
             end
+        elseif strcmpi(temp, 'tc')
+                Amask(:, ind(m)) = (obj.A(:, ind(m)) > 0);
+                ind_trim(m) = false; 
         elseif strcmpi(temp, 'e')
             break;
+        elseif ~isnan(str2double(temp))
+            m = m + floor(str2double(temp)); 
+            fprintf('jump to neuron %d / %d\n', m, length(ind)); 
         else
             m = m+1;
         end
@@ -132,8 +146,8 @@ end
 if save_img
     cd(cur_cd);
 else
+    obj.A(:, ind(ind_trim)) = obj.A(:,ind(ind_trim)).*Amask(:, ind(ind_trim)); 
     obj.delete(ind(ind_del));
-    obj.Coor = obj.get_contours(0.9);
+%     obj.Coor = obj.get_contours(0.9);
 end
-figure; obj.viewContours(obj.Cn, 0.8, 0); close;
 

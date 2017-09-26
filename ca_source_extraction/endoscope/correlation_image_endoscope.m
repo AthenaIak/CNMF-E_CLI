@@ -29,9 +29,11 @@ T = size(Y, 3);
 %% preprocessing data
 % create a spatial filter for removing background
 psf = fspecial('gaussian', round(gSiz), gSig);
-ind_nonzero = (psf(:)>=max(psf(:,1)));
-psf = psf-mean(psf(ind_nonzero));
-psf(~ind_nonzero) = 0;
+if options.center_psf
+    ind_nonzero = (psf(:)>=max(psf(:,1)));
+    psf = psf-mean(psf(ind_nonzero));
+    psf(~ind_nonzero) = 0;
+end
 
 % divide data into multiple patches
 patch_sz = [3, 3];
@@ -59,16 +61,6 @@ for mr = 1:nr_patch
         % spatially filter the data
         HY = imfilter(Ypatch, psf, 'replicate');
         
-        % view effect of gaussian filter
-%        figure(1);
-%         for i=1:1000
-%             subplot('121');
-%             imagesc(Ypatch(:,:,i));
-%             subplot('122');
-%             imagesc(HY(:,:,i));
-%             pause(0.005);
-%         end
-        
         % copute signal to noise ratio
         HY = reshape(HY, [], T);
         HY = bsxfun(@minus, HY, median(HY, 2));
@@ -79,7 +71,7 @@ for mr = 1:nr_patch
         
         
         %  compute loal correlation
-        HY(bsxfun(@lt, HY, Ysig*sig)) = 0; % if PEAK < NOISE*WIDTH_OF_GAUSSIAN then corr = 0
+        HY(bsxfun(@lt, HY, Ysig*sig)) = 0;
         tmp_Cn = correlation_image(HY, [1,2], nrows, ncols);
         Cn(r0:r1, c0:c1) = max(Cn(r0:r1, c0:c1), tmp_Cn);
         
