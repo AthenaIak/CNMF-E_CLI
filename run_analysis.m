@@ -4,10 +4,10 @@ function [ ans ] = run_analysis( set_parameters )
 %   analysis algorithm.
 
 % add paths
-run_setup;
-clear CNMF_dir;
+cnmfe_setup;
+clear CNMF_dir oasis_folder optimization_folder;
 
-% set_parameters='~/tu/athina/Data/analyzed/parameters/parameters_an008_cnmf';
+% set_parameters='~/tu/athina/Data/analyzed/parameters/parameters_cnmf_an001';
 run (set_parameters);
 clear set_parameters;
 
@@ -82,6 +82,13 @@ nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f01-cn&pnr.mat');
 save(nam_mat, 'Cn', 'pnr', '-v7.3'); % specify version 7.3 to allow partial loading
 clear Cn pnr;
 disp(sprintf('Saved as %s', nam_mat));
+
+%% options for running deconvolution 
+neuron.options.deconv_options = struct('type', 'ar1', ... % model of the calcium traces. {'ar1', 'ar2'}
+    'method', 'thresholded', ... % method for running deconvolution {'foopsi', 'constrained', 'thresholded'}
+    'optimize_pars', true, ...  % optimize AR coefficients
+    'optimize_b', true, ... % optimize the baseline
+    'optimize_smin', false);  % optimize the threshold 
 
 %% initialization of A, C
 tic;

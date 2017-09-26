@@ -282,7 +282,7 @@ while searching_flag
             title('correlation image');
             axes(ax_trace); cla;
             plot(HY_box(ind_ctr, :)); title('activity in the center'); axis tight;
-            if ~save_avi; pause; end
+            %if ~save_avi; pause; end
             if exist('avi_file', 'var')
                 frame = getframe(gcf);
                 frame.cdata = imresize(frame.cdata, [800, 1200]);

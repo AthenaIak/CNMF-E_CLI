@@ -7,6 +7,7 @@ addpath(fullfile(CNMF_dir, 'GUI'));
 addpath(fullfile(CNMF_dir, 'GUI', 'gui_callbacks'));
 addpath(fullfile(CNMF_dir, 'GUI', 'modules'));
 addpath(fullfile(CNMF_dir, 'cnmfe_scripts'));
+addpath(fullfile(CNMF_dir, 'CLI'));
 
 %% setup cvx
 if isempty(which('cvx_begin.m'))
