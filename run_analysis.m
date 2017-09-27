@@ -95,7 +95,7 @@ tic;
 
 neuron.options.nk = nk; % number of knots for creating spline basis
 neuron.updateParams('min_corr', min_corr, 'min_pnr', min_pnr, ...
-    'min_pixel', min_pixel);
+    'min_pixel', min_pixel, 'bd', bd);
 clear nk min_corr min_pnr bd min_pixel;
 
 [center, Cn, ~] = neuron.initComponents_endoscope(Y, K, patch_par, debug_on, save_avi); 

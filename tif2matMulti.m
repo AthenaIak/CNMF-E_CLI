@@ -1,8 +1,7 @@
-function nam_mat = tif2matMulti(movieFiles, bd, nam_mat)
+function nam_mat = tif2matMulti(movieFiles, nam_mat)
 %% convert tiff files into mat files
 % inputs:
 %   movieFiles: file names
-%   bd: boundaries of the movie to be cropped.
 %   nam_mat: name of the *.mat file to be created (optional).
 %   file saved with the indicated name.
 % output:
@@ -20,17 +19,11 @@ if ~exist('nam_mat','var')
     nam_mat = sprintf('%s%s%s-all.mat', tmp_dir, filesep, tmp_file);
 end
 
-if ~exist('bd','var')
-    bd = 0;
-end
-
 tic;
 
 info = imfinfo(movieFiles{1});
 d1 = info.Height;   % height of the image 
 d2 = info.Width;    % width of the image 
-d1 = d1 -2*bd;
-d2 = d2 -2*bd;
 T = length(info);   % number of frames 
 for m=2:length(movieFiles)
     info = imfinfo(movieFiles{m});
@@ -44,7 +37,6 @@ numFiles = length(movieFiles);
 for m=1:numFiles
     fprintf('Loading file %d/%d...\n', m,numFiles);
     Y = bigread2(movieFiles{m}); 
-    Y = Y(bd+1:end-bd,bd+1:end-bd,:);
     num_frames = size(Y,3);
     
     disp('Saving file...');
