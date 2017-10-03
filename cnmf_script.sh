@@ -6,9 +6,23 @@ MATLABDIR="/usr/local/MATLAB/R2015b/bin"
 CURRDIR=$PWD
 
 # command line arguments
+if [ $# -ne 6 ]; then
+	echo "Illegal number of parameters!"
+	echo "Use bash ./cnmf_script.sh [input directory] [mouseID] [SessionID] [Trial number] [trial/rest] [analysis tag]"
+	exit 1
+fi
+
 INDIR=$1
-RECID=$2
-TAG=$3
+if [ $5 == "trial" ]; then 
+	isTrial=1
+elif [ $5 == "rest" ]; then 
+	isTrial=0
+else
+	echo "Wrong input for the 5th argument. It should be trial or rest"
+	exit 1
+fi
+RECID=`(grep "$2,$3,$4,$isTrial" $INDIR/rec_ids.dat) | awk -F"," '{print $5}'`
+TAG=$6
 
 # find out how many files comprise this movie
 cmdOutput=`find $INDIR -name recording_$RECID*.tif`
@@ -29,7 +43,7 @@ unCompressedFiles="{$unCompressedFiles}"
 
 # temporally downsample the movies using matlab (generates the pp files)
 cd $MATLABDIR
-#echo matlab -nosplash -nodesktop -r "cd('${CURRDIR}');movieFiles=${unCompressedFiles};preprocessing(movieFiles,4);exit();"
+echo matlab -nosplash -nodesktop -r "cd('${CURRDIR}');movieFiles=${unCompressedFiles};preprocessing(movieFiles,4);exit();"
 
 # find out how many preprocessed (pp) files were generated
 cmdOutput=`find $INDIR -name pp_recording_$RECID*.tif`
