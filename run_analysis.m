@@ -1,13 +1,20 @@
-function [ ans ] = run_analysis( set_parameters )
+function [ ans ] = run_analysis( movieFiles, tag )
 %RUN_ANALYSIS runs CNMF-E analysis on the data
 %   set_parameters: a .m file containing all the parameters used by the
 %   analysis algorithm.
 
+% movieFiles={'/home/athina/Data/mc_recording_20170711_131010-1.tif'};
+[inDir,nam,~] = fileparts(movieFiles{1});
+recID = regexprep(nam, 'mc_recording_(\w*)-1','$1');
+mat_nam = sprintf('%s.mat', recID);
+
 % add paths
 cnmfe_setup;
-clear CNMF_dir oasis_folder optimization_folder;
+clear oasis_folder optimization_folder;
 
-% set_parameters='~/tu/athina/Data/analyzed/parameters/parameters_cnmf_an001';
+% import the parameter values
+set_parameters = fullfile(CNMF_dir,'parameters',sprintf('parameters_cnmf_an%s',tag));
+clear CNMF_dir;
 run (set_parameters);
 clear set_parameters;
 

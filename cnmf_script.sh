@@ -43,7 +43,7 @@ unCompressedFiles="{$unCompressedFiles}"
 
 # temporally downsample the movies using matlab (generates the pp files)
 cd $MATLABDIR
-echo matlab -nosplash -nodesktop -r "cd('${CURRDIR}');movieFiles=${unCompressedFiles};preprocessing(movieFiles,4);exit();"
+echo matlab -nosplash -nodesktop -r "cd('${CURRDIR}');movieFiles=${unCompressedFiles};downsampling(movieFiles,4);exit();"
 
 # find out how many preprocessed (pp) files were generated
 cmdOutput=`find $INDIR -name pp_recording_$RECID*.tif`

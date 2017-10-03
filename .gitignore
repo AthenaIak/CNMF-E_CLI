@@ -1,6 +1,8 @@
 
 *.mat
 
+*.asv
+
 cvx/
 
 *.avi
