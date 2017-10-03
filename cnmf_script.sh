@@ -43,7 +43,7 @@ unCompressedFiles="{$unCompressedFiles}"
 
 # temporally downsample the movies using matlab (generates the pp files)
 cd $MATLABDIR
-echo matlab -nosplash -nodesktop -r "cd('${CURRDIR}');movieFiles=${unCompressedFiles};downsampling(movieFiles,4);exit();"
+echo matlab -nosplash -nodesktop -r "cd('${CURRDIR}');cnmfe_setup;movieFiles=${unCompressedFiles};downsampling(movieFiles,4);exit();"
 
 # find out how many preprocessed (pp) files were generated
 cmdOutput=`find $INDIR -name pp_recording_$RECID*.tif`
@@ -69,7 +69,7 @@ mcFiles="{$mcFiles}"
 #echo $mcFiles
 
 # use matlab to run cnmf-e
-echo matlab -nosplash -nodesktop -r "cd('${CURRDIR}');movieFiles=${mcFiles};parameters='$CURRDIR/parameters_cnmf_$TAG';run_analysis(movieFiles,parameters);exit();"
+echo matlab -nosplash -nodesktop -r "cd('${CURRDIR}');movieFiles=${mcFiles};run_analysis(movieFiles,'${TAG}');exit();"
 
 # check if results file was successfully created. if so, delete all tiff (and mat?) files with this RECID
 
