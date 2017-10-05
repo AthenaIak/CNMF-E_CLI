@@ -7,13 +7,13 @@ function [] = downsampling(movieFiles, down_factor)
 %   movieFiles  :   A cell containing the filenames (path included)
 %   down_factor :   The downsampling factor.
 
-disp('--- PREPROCESSING ---');
+disp('--- DOWNSAMPLING ---');
 
 TIFF_MAX_FRAMES = 1349;
 %movieFiles={'/home/athina/Data/recording_20170711_131010.tif'};preprocessing(movieFiles,4);
 [inDir,rec_nam,~] = fileparts(movieFiles{1});
-run_setup;
-clear CNMF_dir;
+%cnmf_setup;
+%clear CNMF_dir;
 
 % load all files to Y
 numFiles = length(movieFiles); curr_id = 1;
@@ -53,7 +53,7 @@ end
 disp('Done saving movie.');    
    
 
-disp('--- END OF PREPROCESSING ---');
+disp('--- END OF DOWNSAMPLING ---');
 
 clear numMovies
 

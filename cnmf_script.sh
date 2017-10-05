@@ -43,10 +43,10 @@ unCompressedFiles="{$unCompressedFiles}"
 
 # temporally downsample the movies using matlab (generates the pp files)
 cd $MATLABDIR
-echo matlab -nosplash -nodesktop -r "cd('${CURRDIR}');cnmfe_setup;movieFiles=${unCompressedFiles};downsampling(movieFiles,4);exit();"
+matlab -nosplash -nodesktop -r "cd('${CURRDIR}');cnmfe_setup;movieFiles=${unCompressedFiles};downsampling(movieFiles,4);exit();"
 
 # find out how many preprocessed (pp) files were generated
-cmdOutput=`find $INDIR -name pp_recording_$RECID*.tif`
+cmdOutput=`find $INDIR -name pp_recording_$RECID*.tif  | grep "\-[1-9]"`
 numPPfiles=0
 for entry in $cmdOutput
 do
@@ -54,22 +54,21 @@ do
 done
 
 # motion correct using ImageJ
-#~/Downloads/Fiji.app$ ./ImageJ-linux64 -macro ~/Data/Macro.ijm ~/Data+test_TRP+2
 cd $FIJIDIR
-# ./ImageJ-linux64 -macro ${CURRDIR}/Macro.ijm ${INDIR}+${RECID}+${numPPfiles}
+./ImageJ-linux64 -macro ${CURRDIR}/Macro.ijm ${INDIR}+${RECID}+${numPPfiles}
 numMCfiles=$numPPfiles
 
 # construct the string necessary to create the corresponding matlab cell of motion corrected movie files
 mcFiles=\'$INDIR/mc_recording_$RECID-1.tif\'
 for i in `seq 2 $numMCfiles`
 do
-	mcFiles="$mcFiles, '$INDIR/recording_$RECID-$i.tif'"
+	mcFiles="$mcFiles, '$INDIR/mc_recording_$RECID-$i.tif'"
 done
 mcFiles="{$mcFiles}"
 #echo $mcFiles
 
 # use matlab to run cnmf-e
-echo matlab -nosplash -nodesktop -r "cd('${CURRDIR}');movieFiles=${mcFiles};run_analysis(movieFiles,'${TAG}');exit();"
+matlab -nosplash -nodesktop -r "cd('${CURRDIR}');movieFiles=${mcFiles};run_analysis(movieFiles,'${TAG}');exit();"
 
 # check if results file was successfully created. if so, delete all tiff (and mat?) files with this RECID
 

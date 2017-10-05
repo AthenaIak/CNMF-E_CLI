@@ -13,11 +13,11 @@ if (path=="") exit ("No path argument!");
 if (nam=="") exit ("No nam argument!");
 
 // Figure out the names of the files used and created
-ppMovie1 = "pp_" + nam + "-1.tif";
-ppMovie2 = "pp_" + nam + "-2.tif";
-mcMovie1 = "mc_" + nam + "-1.tif";
-mcMovie2 = "mc_" + nam + "-2.tif";
-refImg = "pp_" + nam + "-ref.tif";
+ppMovie1 = "pp_" + "recording_" + nam + "-1.tif";
+ppMovie2 = "pp_" + "recording_" + nam + "-2.tif";
+mcMovie1 = "mc_" + "recording_" + nam + "-1.tif";
+mcMovie2 = "mc_" + "recording_" + nam + "-2.tif";
+refImg = "pp_" + "recording_" + nam + "-ref.tif";
 
 width = 1440; height = 1080;
 

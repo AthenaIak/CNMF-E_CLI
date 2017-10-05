@@ -21,7 +21,7 @@ clear set_parameters;
 % load the motion corrected movies
 filename = fullfile(inDir, mat_nam);
 if ~exist(filename,'file')
-    tif2matMulti(fullfile(inDir,movieFiles), filename);
+    tif2matMulti(movieFiles, filename);
 end
 data = matfile(filename);
 
@@ -235,9 +235,10 @@ csvwrite(fullfile(saveDir, 'traces.txt'), traces);
 
 spikes = neuron.S;
 csvwrite(fullfile(saveDir, 'spikes.txt'), spikes);
-clear saveDir;
 
 % Save neuron object
 data = neuron;
 save(fullfile(saveDir, 'data.mat'), 'neuron');
+clear saveDir;
+
 
