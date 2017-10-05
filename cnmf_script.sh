@@ -74,3 +74,5 @@ matlab -nosplash -nodesktop -r "cd('${CURRDIR}');movieFiles=${mcFiles};run_analy
 
 #cd $CURRDIR # not required at the end of program (automatically returns to previous environment location)
 
+matlab -nosplash -nodesktop -r "cd('${CURRDIR}');cnmfe_setup;path='${INDIR}/$RECID';view_analysis(path,'neurons');view_analysis(path,'ncomp');view_analysis(path,'nhollow');exit();"
+
