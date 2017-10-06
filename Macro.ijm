@@ -15,8 +15,10 @@ if (nam=="") exit ("No nam argument!");
 // Figure out the names of the files used and created
 ppMovie1 = "pp_" + "recording_" + nam + "-1.tif";
 ppMovie2 = "pp_" + "recording_" + nam + "-2.tif";
+ppMovie3 = "pp_" + "recording_" + nam + "-3.tif";
 mcMovie1 = "mc_" + "recording_" + nam + "-1.tif";
 mcMovie2 = "mc_" + "recording_" + nam + "-2.tif";
+mcMovie2 = "mc_" + "recording_" + nam + "-3.tif";
 refImg = "pp_" + "recording_" + nam + "-ref.tif";
 
 width = 1440; height = 1080;
@@ -40,14 +42,12 @@ selectWindow(mcMovie1);
 close();
 
 // check that a second file exists for the same movie
-if (numFiles == 2){
+if (numFiles > 1){
 	open(path+ppMovie2);
 
 	// motion correct the second movie
 	turboreg(ppMovie2, refImg, path+mcMovie2);
 	selectWindow(ppMovie2);
-	close();
-	selectWindow(refImg);
 	close();
 
 	selectWindow(mcMovie2);
@@ -57,6 +57,27 @@ if (numFiles == 2){
 
 	run("Concatenate...", "  title=[Concatenated Stacks] image1=MIN_"+mcMovie1+" image2=MIN_"+mcMovie2+" image3=[-- None --]");
 	run("Z Project...", "projection=[Min Intensity]");
+	if (numFiles > 2){
+		open(path+ppMovie3);
+
+		// motion correct the second movie
+		turboreg(ppMovie2, refImg, path+mcMovie3);
+		selectWindow(ppMovie3);
+		close();
+		selectWindow(refImg);
+		close();
+
+		selectWindow(mcMovie3);
+		run("Z Project...", "projection=[Min Intensity]");
+		selectWindow(mcMovie3);
+		close();
+
+		run("Concatenate...", "  title=[Concatenated Stacks] image1=Concatenated Stacks"+" image2=MIN_"+mcMovie3+" image3=[-- None --]");
+		run("Z Project...", "projection=[Min Intensity]");
+	} else {
+		selectWindow(refImg);
+		close();
+	}
 }
 else {
 	selectWindow("MIN_"+mcMovie1);
