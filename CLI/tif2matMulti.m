@@ -45,7 +45,7 @@ for m=1:numFiles
         save(nam_mat, 'Y', 'Ysiz', '-v7.3'); 
         data = matfile(nam_mat, 'Writable', true); 
     else
-        data.Y(:,:,(1:num_frames)+curr_idx) = Y;
+        data.Y(:,:,(1:num_frames)+curr_idx-1) = Y;
     end
     
     curr_idx = curr_idx + num_frames;
