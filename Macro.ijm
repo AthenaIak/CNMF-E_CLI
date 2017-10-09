@@ -14,7 +14,7 @@ if (nam=="") exit ("No nam argument!");
 
 // Figure out the name of the first file used and created
 ppMovieCurr = "pp_" + "recording_" + nam + "-1.tif";
-mcMovieCurr = "mc_recording_"+nam+"-1.tif"
+mcMovieCurr = "mc_recording_"+nam+"-1.tif";
 refImg = "pp_" + "recording_" + nam + "-ref.tif";
 
 width = 1440; height = 1080;
