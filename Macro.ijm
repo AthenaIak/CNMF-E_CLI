@@ -71,6 +71,8 @@ close();
 selectWindow(refImg);
 close();
 
+run("Quit");
+
 function turboreg(source, reference, outputFilename)
 {
 	run("TurboReg FullCLI",
