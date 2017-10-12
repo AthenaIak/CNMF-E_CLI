@@ -142,3 +142,16 @@ matlab -nosplash -nodesktop -r "cd('${CURRDIR}');movieFiles=${mcFiles};run_analy
 
 #matlab -nosplash -nodesktop -r "cd('${CURRDIR}');cnmfe_setup;path='${INDIR}/$RECID-${TAG}';view_analysis(path,'neurons');view_analysis(path,'ncomp');view_analysis(path,'nhollow');exit();"
 
+if [ ! -d "$INDIR/$RECID-$TAG" ]; then
+	echo "Something went wrong. CNMF-E did not create a directory for this analysis"
+	exit 1	
+fi
+if [ ! -f "$INDIR/$RECID-$TAG/data.mat" ];
+then
+	echo "Something went wrong. CNMF-E did not save all its output"
+	exit 1
+fi
+
+echo "CNMF-E analysis completed successfully."
+
+

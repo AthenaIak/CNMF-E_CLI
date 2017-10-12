@@ -88,7 +88,7 @@ disp('Saving correlation image and peak-to-noise ratio image...');
 nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f01-cn&pnr.mat');
 save(nam_mat, 'Cn', 'pnr', '-v7.3'); % specify version 7.3 to allow partial loading
 clear Cn pnr;
-disp(sprintf('Saved as %s', nam_mat));
+fprintf('Saved as %s\n', nam_mat);
 
 %% options for running deconvolution 
 neuron.options.deconv_options = struct('type', 'ar1', ... % model of the calcium traces. {'ar1', 'ar2'}
@@ -111,15 +111,15 @@ disp('Saving correlation image of initialized neuron...');
 nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f02-cn_after_init.mat');
 save(nam_mat, 'Cn', 'center');
 clear center;
-disp(sprintf('Saved as %s', nam_mat));
+fprintf('Saved as %s', nam_mat);
 
 % Terminate the script if no neurons were detected
 neurDetected = size(neuron.A, 2);
 if neurDetected == 0
-    disp(sprintf('\nATTENTION: No neurons detected! Termination.\n'));
+    fprintf('\nATTENTION: No neurons detected! Termination.\n');
     exit(1);
 end
-disp(sprintf('\n%d neurons detected.\n', neurDetected));
+fprintf('\n%d neurons detected.\n', neurDetected);
 clear neurDetected;
 
 [~, srt] = sort(max(neuron.C, [], 2), 'descend');
@@ -129,9 +129,10 @@ neuron.orderROIs(srt);
 
 % parameters, estimate the background
 if ~isfield(neuron.P, 'sn') || isempty(neuron.P.sn)
-    sn = neuron.estNoise(Y);
-else
-    sn = neuron.P.sn; 
+    %sn = neuron.estNoise(Y);
+    neuron.P.sn = neuron.estNoise(Y);
+%else
+    %sn = neuron.P.sn; 
 end
 
 neuron.options.maxIter = maxIter_temporal;   % iterations to update C
@@ -158,7 +159,7 @@ for miter=1:maxIter
     Ybg = Y-neuron.A*neuron.C;
     rr = ceil(neuron.options.gSiz * bg_neuron_ratio); 
     active_px = []; %(sum(IND, 2)>0);  %If some missing neurons are not covered by active_px, use [] to replace IND
-    [Ybg, ~] = neuron.localBG(Ybg, spatial_ds_factor, rr, active_px, sn, 5); % estiamte local background.
+    [Ybg, ~] = neuron.localBG(Ybg, spatial_ds_factor, rr, active_px, neuron.P.sn, 5); % estiamte local background.
 
     % subtract the background from the raw data.
     Ysignal = Y - Ybg;
