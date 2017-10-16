@@ -10,6 +10,8 @@ function [] = view_analysis(path, id)
 %               and save the images
 %               'nhollow' to view the hollowness of each neuron and save
 %               the images
+%               'beutyn' to view a more beautiful representation of
+%               neurons.
 
 % first select the folder that contains all relevant data (define path)
 %path = '~/tu/athina/Data/analyzed/32365/10.07.2017/mc_recording_20170724_094625-001';
@@ -204,6 +206,82 @@ switch id
         colormap(ax3,'default');
 
         saveas(gcf, sprintf('neuron_%03d_holl_%0.1f.png', i,error));
+        end
+
+        cd(cur_cd);
+        clear x y maxx minx maxy miny;
+        clear neur neurClean ideal neur1d ideal1d;
+        clear colStart rowStart;
+        clear gSiz gaussianCenterVal realCenterVal realNormalFactor gaussNormalFactor;
+        clear i error errors folder_nm cur_cd;
+        clear ax1 ax2 ax3 h alpha;
+        clear dir_neurons neuron referenceImg;
+    case 'beautyn'
+        %% Measure hollowness of each neuron
+        load(fullfile(path,'f06-neurons.mat'));
+
+        % create dir to save images
+        folder_nm = fullfile(path,'neuron_clean');
+        cur_cd = cd();
+
+        if ~exist(folder_nm, 'dir'); mkdir(folder_nm);
+        else
+            disp('The folder has been created and old results will be overwritten. \n');
+        end
+        cd(folder_nm);
+
+        % time
+        T = size(neuron.C, 2);
+        t = 1:T;
+        if ~isnan(neuron.Fs)
+            t = t/neuron.Fs;
+            str_xlabel = 'Time (Sec.)';
+        else
+            str_xlabel = 'Frame';
+        end
+        
+        ind = 1:size(neuron.A, 2);
+        ctr = neuron.estCenter();  
+        Amask = (neuron.A>0);
+        gSiz = neuron.options.gSiz;
+        gSig = neuron.options.gSig;
+
+        figure;
+        for i=1:size(neuron.C,1)
+        neur = reshape(neuron.A(:,i), size(neuron.Cn));
+
+        ax1 = subplot('221'); 
+        %imshow(referenceImg); %imported from file
+        %imagesc(referenceImg);
+        imagesc(referenceImg); hold on;
+        h = imagesc(neur); hold off;
+        alpha = neur>0;
+        set(h,'AlphaData',alpha);
+        title(sprintf('Neuron %d', i));
+        ax2 = subplot('222');
+        neuron.image(neuron.A(:, ind(i)).*Amask(:, ind(i))); 
+%     imagesc(reshape(obj.A(:, ind(m)).*Amask(:,ind(m))), obj.options.d1, obj.options.d2));
+        axis equal; axis off;
+        x0 = ctr(ind(i), 2);
+        y0 = ctr(ind(i), 1);
+        xlim(x0+[-gSiz, gSiz]*2);
+        ylim(y0+[-gSiz, gSiz]*2);
+        
+        ax3 = subplot('212');
+        graph1 = plot(t, neuron.C(ind(i), :)*max(neuron.A(:, ind(i))));
+        xlim([t(1), t(end)]); 
+        xlabel(str_xlabel);
+        limy = get(gca,'YLim');
+        ypadding = max(limy)*0.05;
+        set(gca,'YLIm',[limy(1)-ypadding limy(2)+ypadding]);
+        set(graph1,'LineWidth',1.5);
+        title('Calcium concentration');
+        %ax3 = subplot('224');imagesc(ideal);title(sprintf('Error %.1f px:%d',error,numel(ideal)));
+        colormap(ax1,'gray');
+        %colormap(ax2,'default');
+        %colormap(ax3,'default');
+
+        saveas(gcf, sprintf('neuron_%03d.png', i));
         end
 
         cd(cur_cd);
