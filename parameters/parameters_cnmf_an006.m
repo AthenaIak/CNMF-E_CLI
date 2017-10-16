@@ -23,7 +23,7 @@ bound_pars = false;
 kernel = create_kernel('exp2', [tau_decay, tau_rise]*fs, nframe_decay, [], [], bound_pars); 
 
 % options for running deconvolution 
-dectype = 'ar1'; 	% model of the calcium traces. {'ar1', 'ar2'}
+dectype = 'ar2'; 	% model of the calcium traces. {'ar1', 'ar2'}
 decmethod = 'thresholded'; % method for running deconvolution {'foopsi', 'constrained', 'thresholded'}
 optimize_pars = true;  	% optimize AR coefficients
 optimize_b = true; 	% optimize the baseline
@@ -34,7 +34,7 @@ debug_on = false;
 save_avi = false; 
 K = 150; % maximum number of neurons to search within each patch. you can use [] to search the number automatically
 min_corr = 0.3; % Minimum correlation for separating neurons (default = 0.9)
-min_pnr = 6;  % min peak-to-noise ratio (default = 20)
+min_pnr = 20;  % min peak-to-noise ratio (default = 20)
 min_pixel = 15; % minimum number of (non-negative) pixels that describe the neuron
 nk = 5; % number of knots for creating spline basis
 bd = 20; % boundaries to be removed due to motion correction (does not work properly)

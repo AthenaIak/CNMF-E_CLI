@@ -23,7 +23,7 @@ bound_pars = false;
 kernel = create_kernel('exp2', [tau_decay, tau_rise]*fs, nframe_decay, [], [], bound_pars); 
 
 % options for running deconvolution 
-dectype = 'ar1'; 	% model of the calcium traces. {'ar1', 'ar2'}
+dectype = 'ar2'; 	% model of the calcium traces. {'ar1', 'ar2'}
 decmethod = 'thresholded'; % method for running deconvolution {'foopsi', 'constrained', 'thresholded'}
 optimize_pars = true;  	% optimize AR coefficients
 optimize_b = true; 	% optimize the baseline

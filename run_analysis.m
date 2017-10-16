@@ -91,11 +91,13 @@ clear Cn pnr;
 fprintf('Saved as %s\n', nam_mat);
 
 %% options for running deconvolution 
-neuron.options.deconv_options = struct('type', 'ar1', ... % model of the calcium traces. {'ar1', 'ar2'}
-    'method', 'thresholded', ... % method for running deconvolution {'foopsi', 'constrained', 'thresholded'}
-    'optimize_pars', true, ...  % optimize AR coefficients
-    'optimize_b', true, ... % optimize the baseline
-    'optimize_smin', false);  % optimize the threshold 
+neuron.options.deconv_options = struct('type', dectype, ... % model of the calcium traces. {'ar1', 'ar2'}
+    'method', decmethod, ... % method for running deconvolution {'foopsi', 'constrained', 'thresholded'}
+    'optimize_pars', optimize_pars, ...  % optimize AR coefficients
+    'optimize_b', optimize_b, ... % optimize the baseline
+    'optimize_smin', optimize_smin);  % optimize the threshold 
+
+clear dectype decmethod optimize_pars optimize_b optimize_smin;
 
 %% initialization of A, C
 tic;

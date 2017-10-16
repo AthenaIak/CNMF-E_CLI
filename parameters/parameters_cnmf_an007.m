@@ -33,8 +33,8 @@ optimize_smin = false;  % optimize the threshold
 debug_on = false;
 save_avi = false; 
 K = 150; % maximum number of neurons to search within each patch. you can use [] to search the number automatically
-min_corr = 0.3; % Minimum correlation for separating neurons (default = 0.9)
-min_pnr = 6;  % min peak-to-noise ratio (default = 20)
+min_corr = 0.7; % Minimum correlation for separating neurons (default = 0.9)
+min_pnr = 12;  % min peak-to-noise ratio (default = 20)
 min_pixel = 15; % minimum number of (non-negative) pixels that describe the neuron
 nk = 5; % number of knots for creating spline basis
 bd = 20; % boundaries to be removed due to motion correction (does not work properly)
