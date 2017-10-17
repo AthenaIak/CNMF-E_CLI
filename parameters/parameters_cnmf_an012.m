@@ -11,7 +11,7 @@ gSig = 5; 	% width of the gaussian kernel, which can approximate the average neu
 gSiz = 25; 	% maximum diameter of neurons in the image plane. larger values are preferred. 
 ddist = 2; 	% maximum size of the neuron: dist*gSiz
 search_method = 'ellipse';	% searching method
-merge_thr=0.7; 	% threshold for merging neurons (the higher, the more seed pixels are detected and not merged into 1nu) (default = 0.7)
+merge_thr=0.4; 	% threshold for merging neurons (the higher, the more seed pixels are detected and not merged into 1nu) (default = 0.7)
 bas_nonneg = 1; % 1: positive baseline of each calcium traces; 0: any baseline
 nb = 1; 	% Number of background elements (default = 1)
 
@@ -34,7 +34,7 @@ debug_on = false;
 save_avi = false; 
 K = 150; % maximum number of neurons to search within each patch. you can use [] to search the number automatically
 min_corr = 0.3; % Minimum correlation for separating neurons (default = 0.9)
-min_pnr = 12;  % min peak-to-noise ratio (default = 20)
+min_pnr = 6;  % min peak-to-noise ratio (default = 20)
 min_pixel = 15; % minimum number of (non-negative) pixels that describe the neuron
 nk = 5; % number of knots for creating spline basis
 bd = 20; % boundaries to be removed due to motion correction (does not work properly)
