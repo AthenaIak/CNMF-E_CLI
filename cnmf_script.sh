@@ -44,7 +44,7 @@ if [ $# -eq 6 ]; then
 else
 	let a="($4 - 1) * 5"
 	RECID=`(grep "$2,$3,$(expr $a + 1),1" $INDIR/rec_ids.dat) | awk -F"," '{print $5}'`
-	RECIDtmp=`(grep "$2,$3,$(expr $a + 1),0" $INDIR/rec_ids.dat) | awk -F"," '{print $5}'`
+	#RECIDtmp=`(grep "$2,$3,$(expr $a + 1),0" $INDIR/rec_ids.dat) | awk -F"," '{print $5}'`
 	TAG=$5
 		
 	cmdOutput=`find $INDIR -name recording_$RECID*.tif`
@@ -62,24 +62,25 @@ else
 			unCompressedFiles="$unCompressedFiles, '$INDIR/recording_$RECID-00`expr $i - 1`.tif'"
 		done
 		
-	cmdOutput=`find $INDIR -name recording_$RECIDtmp*.tif`
-	numFiles=0
-	for entry in $cmdOutput
-		do
-			numFiles=`expr $numFiles + 1`
-		done
-	if [ $numFiles -ne 0 ]; then
-		unCompressedFiles="$unCompressedFiles, '$INDIR/recording_$RECIDtmp.tif'"
-	fi
+	#cmdOutput=`find $INDIR -name recording_$RECIDtmp*.tif`
+	#numFiles=0
+	#for entry in $cmdOutput
+	#	do
+	#		numFiles=`expr $numFiles + 1`
+	#	done
+	#if [ $numFiles -ne 0 ]; then
+	#	unCompressedFiles="$unCompressedFiles, '$INDIR/recording_$RECIDtmp.tif'"
+	#fi
 	# normally we would exit if $numFiles -e 0
-	for i in `seq 2 $numFiles`
-		do
-			unCompressedFiles="$unCompressedFiles, '$INDIR/recording_$RECIDtmp-00`expr $i - 1`.tif'"
-		done
+	#for i in `seq 2 $numFiles`
+	#	do
+	#		unCompressedFiles="$unCompressedFiles, '$INDIR/recording_$RECIDtmp-00`expr $i - 1`.tif'"
+	#	done
 	if [ $4 -le 4 ]; then 
 		for n in `seq 2 5`
 			do
-				for isTrial in 1 0
+				isTrial=1
+				#for isTrial in 1 0
 					do
 						RECIDtmp=`(grep "$2,$3,$(expr $a + $n),$isTrial" $INDIR/rec_ids.dat) | awk -F"," '{print $5}'`
 
@@ -98,7 +99,7 @@ else
 						do
 							unCompressedFiles="$unCompressedFiles, '$INDIR/recording_$RECIDtmp-00`expr $i - 1`.tif'"
 						done
-				done
+				#done
 		done
 		
 	fi
