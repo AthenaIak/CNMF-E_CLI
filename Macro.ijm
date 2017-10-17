@@ -43,6 +43,10 @@ for (i=2; i-1<numFiles; i++) {
 	mcMovieCurr = "mc_" + "recording_" + nam + "-" + i + ".tif";
 	
 	open(path+ppMovieCurr);
+
+	selectWindow(refImg);
+	close();
+	open(path+refImg);
 	
 	turboreg(ppMovieCurr, refImg, path+mcMovieCurr);
 	//mc movie is automatically saved by plugin
