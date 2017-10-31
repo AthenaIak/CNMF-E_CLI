@@ -241,10 +241,10 @@ csvwrite(fullfile(saveDir, 'spikes.txt'), spikes);
 
 % save spatial footprints as an object (copatibility with CellReg)
 allFiltersMat = reshape(neuron.A,[],size(neuron.Cn,1),size(neuron.Cn,2));
-save(fullfile(saveDir, 'spatial_footprints.mat'), 'allFiltersMat');
+save(fullfile(saveDir, 'spatial_footprints.mat'), 'allFiltersMat', '-v7.3');
 
 % Save neuron object
 data = neuron;
-save(fullfile(saveDir, 'data.mat'), 'neuron');
+save(fullfile(saveDir, 'data.mat'), 'neuron', '-v7.3');
 
 
