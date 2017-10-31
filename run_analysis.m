@@ -1,4 +1,4 @@
-function [ ans ] = run_analysis( movieFiles, tag )
+function [ footprints_mat ] = run_analysis( movieFiles, tag )
 %RUN_ANALYSIS runs CNMF-E analysis on the data
 %   set_parameters: a .m file containing all the parameters used by the
 %   analysis algorithm.
@@ -239,9 +239,12 @@ csvwrite(fullfile(saveDir, 'traces.txt'), traces);
 spikes = neuron.S;
 csvwrite(fullfile(saveDir, 'spikes.txt'), spikes);
 
+% save spatial footprints as an object (copatibility with CellReg)
+allFiltersMat = reshape(neuron.A,[],size(neuron.Cn,1),size(neuron.Cn,2));
+save(fullfile(saveDir, 'spatial_footprints.mat'), 'allFiltersMat');
+
 % Save neuron object
 data = neuron;
 save(fullfile(saveDir, 'data.mat'), 'neuron');
-clear saveDir;
 
 
