@@ -8,7 +8,7 @@ function [ output_args ] = evaluate_parameters( movieFiles, parIDs )
 run ('CellReg/setup')
 
 % evaluation parameters
-spatial_correlation_threshold = 0.3;
+spatial_correlation_threshold = 0.8;
 
 % CellReg parameters
 results_dir = '/home/athina/tu/athina/CNMF-E_CLI/CellReg/SampleData/SampleResults';
@@ -18,8 +18,13 @@ file_names = {'/home/athina/tu/athina/CNMF-E_CLI/CellReg/SampleData/spatial_foot
     '/home/athina/tu/athina/CNMF-E_CLI/CellReg/SampleData/spatial_footprints_04.mat', ...
     '/home/athina/tu/athina/CNMF-E_CLI/CellReg/SampleData/spatial_footprints_05.mat'};
 
-for id = parIDs
-    [results_dir, footprint_files] = run_analysis( movieFiles, tag );
+num_trials = size(movieFiles);
+file_names = cell(num_trials);
+
+for tag = parIDs
+    for trial = 1:num_trials
+        file_names{trial} = run_analysis( movieFiles{trial}, tag );
+    end
     [ips, fps] = run_cellreg(results_dir, file_names); 
     % ips = cell index per session
     % fpr = spatial footprint of each neuron per session
@@ -28,7 +33,7 @@ for id = parIDs
     
     for session=1:size(fps,2)
         d = size(fps{session});
-        A = reshape(fps{session},d(1),d(2)*d(3))';
+        A = reshape(fps{session},d(1),d(2)*d(3))'; % 1-D footprints X neurons
         
         % calculate the maximum correlation of each neuron with any other
         % neuron for the current session
@@ -37,7 +42,7 @@ for id = parIDs
         maxCorr = max(sp_corr); % max spatial correlation of each neuron with any other neuron
         
         % get the single cells in the current session
-        curr_single = single_cells(single_cells(:,session)>0);
+        curr_single = single_cells(single_cells(:,session)>0, session);
         
         allCells=1:d(1); % all cells for this session
         fs_count = 0; % false splitting count

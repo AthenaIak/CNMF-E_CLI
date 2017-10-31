@@ -47,7 +47,7 @@ figures_visibility='off'; % either 'on' or 'off' (in any case figures are saved)
 
 % Defining the parameters:
 imaging_technique='one_photon'; % either 'one_photon' or 'two_photon'
-microns_per_pixel=2.4;
+microns_per_pixel=1.1227;
 
 % Loading the data:
 disp('Stage 1 - Loading sessions')
