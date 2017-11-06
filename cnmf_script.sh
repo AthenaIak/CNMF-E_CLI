@@ -81,7 +81,7 @@ else
 			do
 				isTrial=1
 				#for isTrial in 1 0
-					do
+					#do
 						RECIDtmp=`(grep "$2,$3,$(expr $a + $n),$isTrial" $INDIR/rec_ids.dat) | awk -F"," '{print $5}'`
 
 						cmdOutput=`find $INDIR -name recording_$RECIDtmp*.tif`
