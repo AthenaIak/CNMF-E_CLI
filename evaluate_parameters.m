@@ -18,6 +18,9 @@ file_names = {'/home/athina/tu/athina/CNMF-E_CLI/CellReg/SampleData/spatial_foot
     '/home/athina/tu/athina/CNMF-E_CLI/CellReg/SampleData/spatial_footprints_04.mat', ...
     '/home/athina/tu/athina/CNMF-E_CLI/CellReg/SampleData/spatial_footprints_05.mat'};
 
+file_names = {'/home/athina/Data/20170724_094625-014/spatial_footprints.mat', ...
+    '/home/athina/Data/20170724_100129-014/spatial_footprints.mat'};
+
 num_trials = size(movieFiles);
 file_names = cell(num_trials);
 
