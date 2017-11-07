@@ -7,9 +7,14 @@ elim = 6;
 
 % remove neurons for whose spatial footprints the normality hypothesis is
 % rejected
-rng = true;     % reject non-gaussian
+rejng = true;           % reject non-gaussian
 
 %% other options
-display=false;      % displays a figure with all information if true
-saveFigure = true;  % saves a figure for each neuron
+dispFig=false;          % displays a figure with all information if true
 
+% save options
+saveFigures = true;     % saves a figure for each neuron
+figFormat = 'png';      % only used if saveFigures is true (see function saveas)
+saveUpdNeuron = true;   % save the updated neuron object (as updated_data.mat)
+saveAsText = true;      % saves footprints, traces and spikes of kept neurons 
+saveForCellReg = true;  % saves the footprints in a form compatible with CellReg

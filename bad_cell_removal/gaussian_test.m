@@ -1,9 +1,9 @@
-function [ rejected, P, stats ] = gaussian_test( neur, display )
+function [ rejected, P, stats ] = gaussian_test( neur, dispFig )
 %GAUSSIAN_TEST Checks if the normality hypothesis is rejected for the given
 %spatial footprint
 % Input:
 %   neur    :   1-Dimensional spatial footprint
-%   display :   creates a plot with the spatial footprint's histogram
+%   dispFig :   creates a plot with the spatial footprint's histogram
 % Output:
 %   rejected    :   1 if the gaussian hypothesis was rejected (0 otherwise)
 %   P           :   the P value
@@ -13,7 +13,7 @@ function [ rejected, P, stats ] = gaussian_test( neur, display )
 [rejected,P,stats] = chi2gof(neur(find(neur>0)));
 
 % plot the histogram of the spatial footprint
-if display
+if dispFig
     % create a histogram from the chi2gof statistics
     bar(stats.edges(1:end-1)+diff(stats.edges),stats.O);
     

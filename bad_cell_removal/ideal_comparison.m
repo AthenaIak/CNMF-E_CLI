@@ -1,10 +1,10 @@
-function [ error ] = ideal_comparison( neur, display )
+function [ error ] = ideal_comparison( neur, dispFig )
 %IDEAL_COMPARISON creates a gaussian filter with similar dimensions to the 
 %given spatial footprint (ideal shape) and calculates the mean squared 
 %error between the two matrices.
 % Input:
 %   neur    :   2-Dimensional spatial footprint
-%   display :   if set true, creates a plot of the ideal spatial footprint
+%   dispFig :   if set true, creates a plot of the ideal spatial footprint
 
 neurClean = zeros(size(neur));
 neurClean(find(neur>max(max(neur))/5)) = neur(find(neur>max(max(neur))/5));
@@ -35,7 +35,7 @@ neurClean(find(neur>max(max(neur))/5)) = neur(find(neur>max(max(neur))/5));
     ideal1d = reshape(ideal,1,[]);
     error = sqrt(sum(bsxfun(@minus,neur1d,ideal1d).^2,2));
 
-    if display
+    if dispFig
         imagesc(ideal);
         title(sprintf('Ideal err: %.2f', error));
     end
