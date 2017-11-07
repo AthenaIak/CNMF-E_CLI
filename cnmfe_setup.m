@@ -8,6 +8,7 @@ addpath(fullfile(CNMF_dir, 'GUI', 'gui_callbacks'));
 addpath(fullfile(CNMF_dir, 'GUI', 'modules'));
 addpath(fullfile(CNMF_dir, 'cnmfe_scripts'));
 addpath(fullfile(CNMF_dir, 'CLI'));
+addpath(fullfile(CNMF_dir, 'bad_cell_removal'));
 
 %% setup cvx
 if isempty(which('cvx_begin.m'))

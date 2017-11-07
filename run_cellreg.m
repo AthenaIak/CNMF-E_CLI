@@ -64,7 +64,8 @@ disp('Done')
 % 3. Evaluating how suitable the data is for longitudinal analysis
 
 % Defining the parameters for image alignment:
-alignment_type='Translations'; % either 'Translations' or 'Translations and Rotations'
+%alignment_type='Translations'; % either 'Translations' or 'Translations and Rotations'
+alignment_type='Translations and Rotations';
 use_parallel_processing=true; % either true or false
 maximal_rotation=30; % in degrees - only relevant if 'Translations and Rotations' is used
 reference_session_index=1; 
