@@ -190,7 +190,7 @@ for miter=1:maxIter
     %% pick neurons from the residual (cell 4).
     if miter==1
         neuron.options.seed_method = 'auto'; % methods for selecting seed pixels {'auto', 'manual'}
-        neuron.pickNeurons(Ysignal - neuron.A*neuron.C, patch_par, 'auto'); % method can be either 'auto' or 'manual'
+        neuron.pickNeurons(Ysignal - neuron.A*neuron.C, patch_par, 'auto',K); % method can be either 'auto' or 'manual'
     end
     
     %% stop the iteration 
