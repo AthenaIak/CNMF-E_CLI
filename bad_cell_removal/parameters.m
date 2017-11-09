@@ -1,20 +1,24 @@
 %% cell rejection parameters
-% hole tolerance (maximum number of allowed holes in the spatial footprint)
-ht = 0;
+% maximum number of allowed holes in the spatial footprint
+ht = 0;                 % hole tolerance
+mt = 0;                 % local minimum tolerance
+mn = 8;                 % number of neighbours checked for the local 
+                        % minimum calculation (4 or 8)
 
-% gaussian error limit
-elim = 6;
+elim = 6;               % gaussian error limit
 
-% remove neurons for whose spatial footprints the normality hypothesis is
-% rejected
 rejng = true;           % reject non-gaussian
+pval = 0.025;           % minimum significance level for rejecting the 
+                        % normal distribution hypothesis 
+                        % (the default p value is 0.05)
 
 %% other options
-dispFig=false;          % displays a figure with all information if true
+dispFig=true;           % displays a figure with all information if true
+interval=1;             % time interval in between figures (in seconds)
 
 % save options
-saveFigures = true;     % saves a figure for each neuron
-figFormat = 'png';      % only used if saveFigures is true (see function saveas)
+saveFigures = false;    % saves a figure for each neuron (as .png images)
 saveUpdNeuron = true;   % save the updated neuron object (as updated_data.mat)
 saveAsText = true;      % saves footprints, traces and spikes of kept neurons 
 saveForCellReg = true;  % saves the footprints in a form compatible with CellReg
+saveStatistics = true;  % saves all statistics for this neuron
