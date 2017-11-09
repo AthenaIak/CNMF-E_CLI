@@ -91,6 +91,7 @@ clear Cn pnr;
 fprintf('Saved as %s\n', nam_mat);
 
 %% options for running deconvolution 
+neuron_full.options.deconv_flag = true; 
 neuron.options.deconv_options = struct('type', dectype, ... % model of the calcium traces. {'ar1', 'ar2'}
     'method', decmethod, ... % method for running deconvolution {'foopsi', 'constrained', 'thresholded'}
     'optimize_pars', optimize_pars, ...  % optimize AR coefficients
@@ -190,7 +191,7 @@ for miter=1:maxIter
     %% pick neurons from the residual (cell 4).
     if miter==1
         neuron.options.seed_method = 'auto'; % methods for selecting seed pixels {'auto', 'manual'}
-        neuron.pickNeurons(Ysignal - neuron.A*neuron.C, patch_par, 'auto',K); % method can be either 'auto' or 'manual'
+        neuron.pickNeurons(Ysignal - neuron.A*neuron.C, patch_par, 'auto',debug_on,K); % method can be either 'auto' or 'manual'
     end
     
     %% stop the iteration 
