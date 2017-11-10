@@ -19,9 +19,7 @@ num_holes = sum(sum(filled-L)); % subtract the non-filled shape
 
 % plot the binary mask of the spatial footprint
 if doPlot
-    % get rid of the blank boundaries
-    [x,y] = ind2sub(size(L),find(L>0));
-    imagesc(L(min(x):max(x),min(y):max(y)));
+    imagesc(L);
     title(sprintf('#Holes: %d', num_holes));
 end
 end

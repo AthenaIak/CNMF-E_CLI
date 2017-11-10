@@ -42,7 +42,7 @@ numLocmins = zeros(1,nNeurons); % number of local minimums inside the spatial fo
 badCell = false(1,nNeurons);    % saves which neurons are badly shaped and will be deleted
 
 % create plots if the user chose to display or save figures
-if or(dispFig, saveFigures), doPlot = true; else doPlot = false; end
+if or(dispFig, saveFigures), doPlot = true; else, doPlot = false; end
 
 % initialize plotting
 if doPlot
@@ -64,11 +64,13 @@ for i=1:nNeurons % for each neuron
     
     % get the spatial footprints in 2-dimensional form
     neur2d = reshape(neuron.A(:,i), size(neuron.Cn));
+    [x,y] = ind2sub(size(neur2d),find(neur2d>0)); % find the indexes to ...
+    neur2d = neur2d(min(x):max(x),min(y):max(y)); % ... crop the boundaries
     
     % calculate statistics for this spatial footprint 
     % |--- plot neuron and the ideal neuron, for its dimensions, next to it
     if doPlot, clf; 
-        subplot('421'); plot_cropped_neuron(neur2d, i);
+        subplot('421'); imagesc(neur2d); title(sprintf('Neuron: %d', i));
         subplot('422'); 
     end
     mserrors(i) = ideal_comparison(neur2d, doPlot);
@@ -117,7 +119,7 @@ for i=1:nNeurons % for each neuron
         text(0,0.5,{'Summary';'Holes: ';'Mins: ';'Shape: ';'Gaussian: '}); 
         text(0.85,0.5,{'',result1,result2,result3,result4});
     end
-    
+    i=i+1;
     % mark the neuron as bad if it doesn't pass one of the tests
     if ~ gen_pass, badCell(i) = true; end
     
