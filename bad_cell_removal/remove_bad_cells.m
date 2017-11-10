@@ -26,7 +26,7 @@ end
 % create directory to save neurons (if option is selected)
 if saveFigures
     fig_out_dir = fullfile(out_dir, 'bc_stats');
-    if ~ exist('fig_out_dir', 'dir'), mkdir(fig_out_dir); end
+    if ~ exist(fig_out_dir, 'dir'), mkdir(fig_out_dir); end
 end
 
 % retrieve information about the recording
@@ -36,6 +36,7 @@ nNeurons = size(neuron.C,1);    % number of neurons detected by CNMF-E
 
 % initialize vectors to save statistics per frame
 mserrors = zeros(1,nNeurons);   % mean squared error when compared to an ideal shape
+similarity = zeros(1,nNeurons); 
 notgaus = zeros(1,nNeurons);    % gaussian hypothesis rejection
 numHoles = zeros(1,nNeurons);   % number of holes inside the spatial footprint
 numLocmins = zeros(1,nNeurons); % number of local minimums inside the spatial footprint
@@ -58,9 +59,13 @@ end
 
 %% perform tests to all detected neurons
 for i=1:nNeurons % for each neuron
+    if mod(i,100)== 0
+        fprintf('Neuron %d of %d',i, nNeurons);
+    end
+    
     % variables to store test results
     holes_pass = true; locmin_pass = true; mse_pass = true; 
-    gaus_pass = true; gen_pass = true;
+    sim_pass = true; gaus_pass = true; gen_pass = true;
     
     % get the spatial footprints in 2-dimensional form
     neur2d = reshape(neuron.A(:,i), size(neuron.Cn));
@@ -73,7 +78,7 @@ for i=1:nNeurons % for each neuron
         subplot('421'); imagesc(neur2d); title(sprintf('Neuron: %d', i));
         subplot('422'); 
     end
-    mserrors(i) = ideal_comparison(neur2d, doPlot);
+    [mserrors(i), similarity(i)] = ideal_comparison(neur2d, doPlot);
     
     % |--- plot the binary mask of the neuron
     if doPlot, subplot('423'); end
@@ -91,7 +96,6 @@ for i=1:nNeurons % for each neuron
     if doPlot, subplot('414'); 
     plot_calcium(neuron.C_raw(i,:), neuron.C(i,:), max(neuron.A(:,i)), t);
     xlabel(str_xlabel);
-    
     end
     
     % compare all test results with the user defined limits
@@ -99,6 +103,7 @@ for i=1:nNeurons % for each neuron
     if numHoles(i) > ht, holes_pass = false; gen_pass = false; end
     if numLocmins(i) > mt, locmin_pass = false; gen_pass = false; end
     if mserrors(i) > elim, mse_pass = false; gen_pass = false; end
+    if similarity(i) < simthres, sim_pass = false; gen_pass = false; end
     if rejng
         if notgaus(i) == 1, gaus_pass = false; gen_pass = false; end
     else
@@ -114,12 +119,14 @@ for i=1:nNeurons % for each neuron
         else result2='\color{red}Fail'; end
         if mse_pass, result3='\color{green}Pass'; 
         else result3='\color{red}Fail'; end
-        if gaus_pass, result4='\color{green}Pass'; 
+        if sim_pass, result4='\color{green}Pass'; 
         else result4='\color{red}Fail'; end
-        text(0,0.5,{'Summary';'Holes: ';'Mins: ';'Shape: ';'Gaussian: '}); 
-        text(0.85,0.5,{'',result1,result2,result3,result4});
+        if gaus_pass, result5='\color{green}Pass'; 
+        else result5='\color{red}Fail'; end
+        text(0,0.5,{'Summary';'Holes: ';'Mins: ';'Shape: ';'Simil: ';'Gaussian: '}); 
+        text(0.85,0.5,{'',result1,result2,result3,result4,result5});
     end
-    i=i+1;
+    
     % mark the neuron as bad if it doesn't pass one of the tests
     if ~ gen_pass, badCell(i) = true; end
     
@@ -159,6 +166,7 @@ end
 if saveStatistics 
     % export statistics
     csvwrite(fullfile(out_dir, 'rbc_meansquarederror.txt'), mserrors);
+    csvwrite(fullfile(out_dir, 'rbc_similarity.txt'), similarity);
     csvwrite(fullfile(out_dir, 'rbc_isnotgaussian.txt'), notgaus);
     csvwrite(fullfile(out_dir, 'rbc_numberholes.txt'), numHoles);
     csvwrite(fullfile(out_dir, 'rbc_numbermins.txt'), numLocmins);

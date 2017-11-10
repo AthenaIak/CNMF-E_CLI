@@ -2,7 +2,8 @@ function [ num_holes ] = count_holes( neur, doPlot )
 %COUNT_HOLES Calculates the number of holes in a spatial footprint.
 %
 % Input:
-%   neur        :   2-Dimensional spatial footprint
+%   neur        :   2-Dimensional spatial footprint (assumes that the
+% boundaries are cropped)
 %   doPlot      :   creates a plot with the binary mask of the spatial 
 % footprint
 %

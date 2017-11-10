@@ -3,7 +3,8 @@ function [ num_locmins ] = count_local_minimums( neur, mn, doPlot )
 %footprint.
 %
 % Input:
-%   neur        :   2-Dimensional spatial footprint
+%   neur        :   2-Dimensional spatial footprint (assumes that the
+% boundaries are cropped)
 %   mn          :   number of Neighbours examined for the locam Minimum
 %   calculation (can be either 4 or 8).
 %   doPlot      :   creates a plot with the binary mask of the spatial 
