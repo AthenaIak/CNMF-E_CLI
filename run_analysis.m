@@ -109,6 +109,7 @@ neuron.updateParams('min_corr', min_corr, 'min_pnr', min_pnr, ...
 clear nk min_corr min_pnr bd min_pixel;
 
 [center, Cn, ~] = neuron.initComponents_endoscope(Y, K, patch_par, debug_on, save_avi); 
+% initialized neurons will be merged in the next step
 
 disp('Saving correlation image of initialized neuron...');
 nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'f02-cn_after_init.mat');
@@ -190,6 +191,7 @@ for miter=1:maxIter
     
     %% pick neurons from the residual (cell 4).
     if miter==1
+        neuron = remove_bad_cells(neuron); % remove bad cells before picking new ones (gives a better chance to detect more good ones)
         neuron.options.seed_method = 'auto'; % methods for selecting seed pixels {'auto', 'manual'}
         neuron.pickNeurons(Ysignal - neuron.A*neuron.C, patch_par, 'auto',debug_on,K); % method can be either 'auto' or 'manual'
     end
@@ -203,8 +205,7 @@ for miter=1:maxIter
     nC = temp;
 end
 
-%% apply results to the full resolution
-% not supported (is this needed?)
+neuron = remove_bad_cells(neuron); % remove bad cells
 
 %% save results
 nam_mat = fullfile(path,sprintf('%s-%s',name,tag),'results.mat');
