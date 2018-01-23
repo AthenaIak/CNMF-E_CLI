@@ -28,9 +28,9 @@ num_locmins = length(idx);
 
 % calculate accumulated error (values of neighbouring pixels)
 error = 0;
-for idx = 1:length(x)
-    xi = x(idx)+1;
-    yi = y(idx)+1;
+for i = 1:length(x)
+    xi = x(i)+1;
+    yi = y(i)+1;
     error = error + sum(sum(neur(xi-1:xi+1,yi-1:yi+1)))-neur(xi,yi);
 end
 
@@ -41,7 +41,7 @@ norm_error = error/max(max(neur));
 if doPlot
     imagesc(mod(locmin+1,2)); hold on;
     [x,y]=ind2sub(size(neur)-2,idx);
-    plot(y+1,x+1,'rs','MarkerSize',12); hold off;
+    plot(y+1,x+1,'rs','MarkerSize',16); hold off;
     title(sprintf('#Local mins: %d', num_locmins));
 end
 

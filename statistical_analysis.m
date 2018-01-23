@@ -62,16 +62,27 @@ for m=1:numFiles
     
     % take the inferred spiking activity of each trial
     fs=5; time_cut=30;
-    spikes = neuron.S(:,1+time_cut*fs:1400+time_cut);
+    spikes = neuron.S(:,1+time_cut*fs:end);
     
-    [nn, ts] = size(spikes); % number of neurons and timesteps
+    nn = size(spikes,1); % number of neurons and timesteps
     
     % detect problematic frames and remove them
-    isSpike=spikes>0;
-    sss= sum(isSpike);    
-    badFrames = find(sss>35);
-    spikes(:,badFrames)=0;
+    % yuste
+    isSpike=spikes>0;  
+    spikes = neuron.C(:,1+time_cut*fs:end);
+    spikes=spikes(:,find(sum(isSpike)<=0.1*nn)); % remove the bad frames    
+    
+    % second
+    %spikes=single(spikes>0);   
+    %spikes=spikes(:,find(sum(spikes)<=0.1*nn)); % remove the bad frames
+    
+    % 1st
+    %isSpike=spikes>0;   
+    %spikes=spikes(:,find(sum(isSpike)<=0.1*nn)); % remove the bad frames
+    spikes = spikes(:,1:1140+time_cut); % make sure all recordings are 3.9min long
     random_spikes = spikes; % backup of the original
+    
+    [nn, ts] = size(spikes); % number of neurons and timesteps
     
     % shift rows randomly
     fprintf('Spike shifting... '); tic;
@@ -90,35 +101,13 @@ for m=1:numFiles
     sindex_threshold = prctile(random_sindex,99);
     
     real_sindex = pairwise_sindex(spikes);
-    corrPerTrial(m)=sum(real_sindex>sindex_threshold)/length(random_sindex);
-    
-    % shift columns randomly (historical code used to troubleshoot)
-%     random_spikes = spikes;
-%     fprintf('Spike shifting vertically... '); tic;
-%     for i=1:maxIter
-%         shifts=randi(nn,ts,1); % random values for the shifting for each row
-%         r = rem(shifts,nn);
-%         c = [random_spikes;random_spikes]';
-%         random_spikes = c(bsxfun(@plus,bsxfun(@plus,nn - r,0:nn-1)*ts,(1:ts)'))';
-%         if mod(i,maxIter/10) == 0 
-%             fprintf('%d%% ',i/maxIter*100);
-%         end
-%     end
-%     fprintf('\nDone\n');toc;
-%     
-%     random_sindex = pairwise_sindex(random_spikes);
-%     sindex_threshold = prctile(random_sindex,99);
-%     
-%     real_sindex = pairwise_sindex(spikes);
-%     corrPerTrial2(m)=sum(real_sindex>sindex_threshold)/length(random_sindex);
-    
+    corrPerTrial(m)=sum(real_sindex>sindex_threshold)/length(random_sindex);    
     
     fprintf('Movie %s significance ratio: %f\n', movieFiles{m},corrPerTrial(m));
-%    fprintf('Movie %s sign. ratio (vert): %f\n', movieFiles{m},corrPerTrial2(m));
 end
 
 disp(corrPerTrial');
-save('results_clean_statistical.mat','corrPerTrial','-v7.3');
+save('results_clean_statistical_ca2.mat','corrPerTrial','-v7.3');
 %%
 corrPerDay1 = [sum(corrPerTrial(1:5))/5 sum(corrPerTrial(6:10))/5 ... 
     sum(corrPerTrial(11:15))/5 sum(corrPerTrial(16:20))/5 corrPerTrial(21)];
@@ -126,12 +115,14 @@ corrPerDay1 = [sum(corrPerTrial(1:5))/5 sum(corrPerTrial(6:10))/5 ...
 corrPerDay2 = [sum(corrPerTrial(22:26))/5 sum(corrPerTrial(27:31))/5 ... 
     sum(corrPerTrial(32:36))/5 sum(corrPerTrial(37:41))/5 corrPerTrial(42)];
 
+plot(1:5,corrPerDay1);hold on;plot(1:5,corrPerDay2);hold off;
+legend('Overlapping','Random');
+xlabel('Day');ylabel('Significant S-index ratio');
+%axis([1 5 0 0.035]);
+
 anova2([corrPerDay1;corrPerDay2]',1)
-
-corrPerDay1 = [sum(corrPerTrial(1:5))/5 sum(corrPerTrial(6:10))/5 ... 
-    sum(corrPerTrial(11:15))/5 sum(corrPerTrial(16:20))/5];
-
-corrPerDay2 = [sum(corrPerTrial(22:26))/5 sum(corrPerTrial(27:31))/5 ... 
-    sum(corrPerTrial(33:36))/4 sum(corrPerTrial(37:41))/5];
+% columns: 2 conditions (first row=session 3, second=session 2)
+% rows: 5 days
+% we expect to find Prob>F < 0.01 (comparison between conditions) ???
 
 

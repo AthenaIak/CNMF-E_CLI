@@ -18,7 +18,7 @@ dispFig=false;          % displays a figure with all information if true
 interval=1;             % time interval in between figures (in seconds)
 
 % save options
-saveFigures = true;    % saves a figure for each neuron (as .png images)
+saveFigures = false;    % saves a figure for each neuron (as .png images)
 saveUpdNeuron = true;   % save the updated neuron object (as updated_data.mat)
 saveAsText = true;      % saves footprints, traces and spikes of kept neurons 
 saveForCellReg = true;  % saves the footprints in a form compatible with CellReg
